@@ -1,33 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Docs Clone</title>
+  <meta charset="UTF-8">
+  <title>Docs</title>
+
+  <!-- Quill Theme -->
   <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div id="editor" style="height: 400px;"></div>
+<div class="container">
+  <div id="editor"></div>
+</div>
 
+<!-- Quill -->
 <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
-<script>
-  const quill = new Quill('#editor', {
-    theme: 'snow'
-  });
 
-  // Load document
-  fetch('/load')
-    .then(res => res.json())
-    .then(data => quill.setContents(data));
-
-  // Auto-save every 2 seconds
-  setInterval(() => {
-    fetch('/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(quill.getContents())
-    });
-  }, 2000);
-</script>
+<!-- Your Script -->
+<script src="script.js"></script>
 
 </body>
 </html>
