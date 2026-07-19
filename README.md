@@ -1,2 +1,2 @@
 # OfflineDocsEditor
-A Offline Version of Docs make for Easy used and Less Memory Consumption.
+A Offline Version of Docs made for Easy use and Less Memory Consumption.
