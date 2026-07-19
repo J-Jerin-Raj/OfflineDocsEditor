@@ -27,6 +27,22 @@ async function saveDoc() {
   }
 }
 
+// print function
+async function dprint(){
+  let cont=document.querySelector(".ql-editor").innerHTML;
+
+  let aphead=document.head.innerHTML
+  let apbody=document.body.innerHTML
+
+  document.head.innerHTML=""
+  document.body.innerHTML=cont
+
+  window.print();
+
+  document.head.innerHTML=aphead
+  document.body.innerHTML=apbody
+}
+
 // Auto-save (optimized)
 let timeout;
 quill.on('text-change', () => {
