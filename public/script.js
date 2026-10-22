@@ -9,14 +9,24 @@
   const STORAGE_KEY = 'offline_docs_backup_v1';
   const DEFAULT_TITLE = 'Untitled Document';
 
-  // DOM Elements
+  // DOM Elements (Desktop & Mobile)
   const docTitleInput = document.getElementById('doc-title');
+  const mobileDocTitleInput = document.getElementById('mobile-doc-title');
+  
   const statusPill = document.getElementById('status-pill');
   const statusText = document.getElementById('status-text');
+  const mobileStatusPill = document.getElementById('mobile-status-pill');
+  const mobileStatusText = document.getElementById('mobile-status-text');
   const offlineBadge = document.getElementById('offline-badge');
+  
   const wordCountEl = document.getElementById('word-count');
   const charCountEl = document.getElementById('char-count');
+  const mobileWordCountEl = document.getElementById('mobile-word-count');
+  const mobileCharCountEl = document.getElementById('mobile-char-count');
+  
   const btnPrint = document.getElementById('btn-print');
+  
+  // Desktop Export Dropdown
   const btnExportToggle = document.getElementById('btn-export-toggle');
   const exportDropdown = document.getElementById('export-dropdown');
   const btnExportPdf = document.getElementById('btn-export-pdf');
@@ -26,6 +36,18 @@
   const btnExportJson = document.getElementById('btn-export-json');
   const btnNew = document.getElementById('btn-new');
   const btnFullscreen = document.getElementById('btn-fullscreen');
+
+  // Mobile More Menu Dropdown
+  const btnMobileMenu = document.getElementById('btn-mobile-menu');
+  const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
+  const btnMobileNew = document.getElementById('btn-mobile-new');
+  const btnMobileFocus = document.getElementById('btn-mobile-focus');
+  const btnMobilePdf = document.getElementById('btn-mobile-pdf');
+  const btnMobileTxt = document.getElementById('btn-mobile-txt');
+  const btnMobileHtml = document.getElementById('btn-mobile-html');
+  const btnMobileMd = document.getElementById('btn-mobile-md');
+  const btnMobileJson = document.getElementById('btn-mobile-json');
+
   const toastEl = document.getElementById('toast');
 
   // Initialize Quill Editor (Snow Theme, Custom Toolbar)
@@ -51,7 +73,7 @@
    * Leverages pure CSS @media print for maximum performance, fidelity & speed.
    */
   function printDocument() {
-    const rawTitle = docTitleInput.value.trim() || DEFAULT_TITLE;
+    const rawTitle = getCurrentTitle();
     const previousPageTitle = document.title;
 
     // Set page title so browser's native print/PDF engine names the file accurately
@@ -62,17 +84,27 @@
       window.print();
       // Restore application title afterwards
       document.title = `${rawTitle} - Offline Docs`;
-    }, 50);
+    }, 60);
 
     showToast('Print preview generated');
   }
 
   // Bind Print Events
   btnPrint.addEventListener('click', printDocument);
-  btnExportPdf.addEventListener('click', () => {
-    closeDropdown();
-    printDocument();
-  });
+
+  if (btnExportPdf) {
+    btnExportPdf.addEventListener('click', () => {
+      closeAllDropdowns();
+      printDocument();
+    });
+  }
+
+  if (btnMobilePdf) {
+    btnMobilePdf.addEventListener('click', () => {
+      closeAllDropdowns();
+      printDocument();
+    });
+  }
 
   // Set OS shortcut hint on print button
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
@@ -83,7 +115,7 @@
 
   // Restore document title reliably when print preview closes
   window.addEventListener('afterprint', () => {
-    const rawTitle = docTitleInput.value.trim() || DEFAULT_TITLE;
+    const rawTitle = getCurrentTitle();
     document.title = `${rawTitle} - Offline Docs`;
   });
 
@@ -92,18 +124,24 @@
   // ==========================================================================
 
   function updateStatus(state, message) {
-    statusPill.className = 'status-pill';
+    const pills = [statusPill, mobileStatusPill].filter(Boolean);
+    const texts = [statusText, mobileStatusText].filter(Boolean);
 
-    if (state === 'saving') {
-      statusPill.classList.add('status-saving');
-      statusText.textContent = message || 'Saving...';
-    } else if (state === 'offline') {
-      statusPill.classList.add('status-offline');
-      statusText.textContent = message || 'Saved offline';
-    } else {
-      statusPill.classList.add('status-saved');
-      statusText.textContent = message || 'Saved';
-    }
+    pills.forEach((pill) => {
+      pill.className = 'status-pill';
+      if (state === 'saving') {
+        pill.classList.add('status-saving');
+      } else if (state === 'offline') {
+        pill.classList.add('status-offline');
+      } else {
+        pill.classList.add('status-saved');
+      }
+    });
+
+    const displayMsg = message || (state === 'saving' ? 'Saving...' : state === 'offline' ? 'Saved offline' : 'Saved');
+    texts.forEach((txt) => {
+      txt.textContent = displayMsg;
+    });
   }
 
   function showToast(message, duration = 2500) {
@@ -122,22 +160,73 @@
 
   function updateStats() {
     const text = quill.getText();
-    // Quill adds a trailing \n by default
     const clean = text.replace(/\n$/, '');
     const words = clean.trim() ? clean.trim().split(/\s+/).length : 0;
     const chars = clean.length;
 
-    wordCountEl.textContent = words.toLocaleString();
-    charCountEl.textContent = chars.toLocaleString();
+    const formattedWords = words.toLocaleString();
+    const formattedChars = chars.toLocaleString();
+
+    if (wordCountEl) wordCountEl.textContent = formattedWords;
+    if (charCountEl) charCountEl.textContent = formattedChars;
+    if (mobileWordCountEl) mobileWordCountEl.textContent = formattedWords;
+    if (mobileCharCountEl) mobileCharCountEl.textContent = formattedChars;
   }
 
   // ==========================================================================
-  // 4. STORAGE & SYNC (LOCALSTORAGE + NODE SERVER)
+  // 4. TITLE SYNC (DESKTOP & MOBILE INPUTS)
+  // ==========================================================================
+
+  function getCurrentTitle() {
+    if (docTitleInput && docTitleInput.value.trim()) {
+      return docTitleInput.value.trim();
+    }
+    if (mobileDocTitleInput && mobileDocTitleInput.value.trim()) {
+      return mobileDocTitleInput.value.trim();
+    }
+    return DEFAULT_TITLE;
+  }
+
+  function setTitle(newTitle) {
+    const clean = newTitle || DEFAULT_TITLE;
+    if (docTitleInput) docTitleInput.value = clean;
+    if (mobileDocTitleInput) mobileDocTitleInput.value = clean;
+    document.title = `${clean} - Offline Docs`;
+  }
+
+  function handleTitleInput(sourceInput) {
+    const title = sourceInput.value.trim() || DEFAULT_TITLE;
+    setTitle(title);
+    triggerAutoSave();
+  }
+
+  if (docTitleInput) {
+    docTitleInput.addEventListener('input', () => handleTitleInput(docTitleInput));
+    docTitleInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        docTitleInput.blur();
+        quill.focus();
+      }
+    });
+  }
+
+  if (mobileDocTitleInput) {
+    mobileDocTitleInput.addEventListener('input', () => handleTitleInput(mobileDocTitleInput));
+    mobileDocTitleInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        mobileDocTitleInput.blur();
+        quill.focus();
+      }
+    });
+  }
+
+  // ==========================================================================
+  // 5. STORAGE & SYNC (LOCALSTORAGE + NODE SERVER)
   // ==========================================================================
 
   function getDocumentData() {
     return {
-      title: docTitleInput.value.trim() || DEFAULT_TITLE,
+      title: getCurrentTitle(),
       content: quill.getContents(),
       updatedAt: new Date().toISOString()
     };
@@ -212,7 +301,6 @@
       const res = await fetch('/load');
       if (res.ok) {
         const serverData = await res.json();
-        // If server data exists and is not empty
         if (serverData) {
           applyDocData(serverData);
           saveToLocalStorage(getDocumentData());
@@ -234,8 +322,7 @@
   // Helper to apply title and Delta content
   function applyDocData(data) {
     if (data.title) {
-      docTitleInput.value = data.title;
-      document.title = `${data.title} - Offline Docs`;
+      setTitle(data.title);
     }
 
     if (data.content && data.content.ops) {
@@ -247,23 +334,6 @@
 
     updateStats();
   }
-
-  // ==========================================================================
-  // 5. DOCUMENT TITLE HANDLERS
-  // ==========================================================================
-
-  docTitleInput.addEventListener('input', () => {
-    const title = docTitleInput.value.trim() || DEFAULT_TITLE;
-    document.title = `${title} - Offline Docs`;
-    triggerAutoSave();
-  });
-
-  docTitleInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      docTitleInput.blur();
-      quill.focus();
-    }
-  });
 
   // ==========================================================================
   // 6. EXPORT UTILITIES (TXT, HTML, MD, JSON)
@@ -285,21 +355,19 @@
   }
 
   function getSanitizedFilename(ext) {
-    const base = docTitleInput.value.trim() || DEFAULT_TITLE;
+    const base = getCurrentTitle();
     return `${base.replace(/[/\\?%*:|"<>]/g, '_')}.${ext}`;
   }
 
-  // Export Plain Text
-  btnExportTxt.addEventListener('click', () => {
-    closeDropdown();
+  function exportTxt() {
+    closeAllDropdowns();
     const text = quill.getText();
     downloadBlob(text, getSanitizedFilename('txt'), 'text/plain');
-  });
+  }
 
-  // Export Standalone HTML
-  btnExportHtml.addEventListener('click', () => {
-    closeDropdown();
-    const title = docTitleInput.value.trim() || DEFAULT_TITLE;
+  function exportHtml() {
+    closeAllDropdowns();
+    const title = getCurrentTitle();
     const bodyHtml = quill.root.innerHTML;
     const fullHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -332,15 +400,13 @@ ${bodyHtml}
 </body>
 </html>`;
     downloadBlob(fullHtml, getSanitizedFilename('html'), 'text/html');
-  });
+  }
 
-  // Export Markdown
-  btnExportMd.addEventListener('click', () => {
-    closeDropdown();
-    const title = docTitleInput.value.trim() || DEFAULT_TITLE;
+  function exportMd() {
+    closeAllDropdowns();
+    const title = getCurrentTitle();
     let md = `# ${title}\n\n`;
 
-    // Simple, lightweight delta to markdown converter
     const contents = quill.getContents();
     if (contents && contents.ops) {
       contents.ops.forEach((op) => {
@@ -360,62 +426,93 @@ ${bodyHtml}
     }
 
     downloadBlob(md, getSanitizedFilename('md'), 'text/markdown');
-  });
+  }
 
-  // Export JSON Backup
-  btnExportJson.addEventListener('click', () => {
-    closeDropdown();
+  function exportJson() {
+    closeAllDropdowns();
     const jsonStr = JSON.stringify(getDocumentData(), null, 2);
     downloadBlob(jsonStr, getSanitizedFilename('json'), 'application/json');
-  });
+  }
+
+  // Bind Export Listeners (Desktop & Mobile)
+  if (btnExportTxt) btnExportTxt.addEventListener('click', exportTxt);
+  if (btnMobileTxt) btnMobileTxt.addEventListener('click', exportTxt);
+
+  if (btnExportHtml) btnExportHtml.addEventListener('click', exportHtml);
+  if (btnMobileHtml) btnMobileHtml.addEventListener('click', exportHtml);
+
+  if (btnExportMd) btnExportMd.addEventListener('click', exportMd);
+  if (btnMobileMd) btnMobileMd.addEventListener('click', exportMd);
+
+  if (btnExportJson) btnExportJson.addEventListener('click', exportJson);
+  if (btnMobileJson) btnMobileJson.addEventListener('click', exportJson);
 
   // ==========================================================================
   // 7. NEW DOCUMENT ACTION
   // ==========================================================================
 
-  btnNew.addEventListener('click', () => {
+  function startNewDocument() {
+    closeAllDropdowns();
     const text = quill.getText().trim();
     if (text.length > 0) {
-      const confirmNew = window.confirm('Start a new document? Unsaved changes will be replaced.');
+      const confirmNew = window.confirm('Start a new document? Unsaved changes will be cleared.');
       if (!confirmNew) return;
     }
 
-    docTitleInput.value = DEFAULT_TITLE;
-    document.title = `${DEFAULT_TITLE} - Offline Docs`;
+    setTitle(DEFAULT_TITLE);
     quill.setText('');
     saveDoc();
     updateStats();
     quill.focus();
     showToast('New document created');
-  });
+  }
+
+  if (btnNew) btnNew.addEventListener('click', startNewDocument);
+  if (btnMobileNew) btnMobileNew.addEventListener('click', startNewDocument);
 
   // ==========================================================================
   // 8. FOCUS / FULLSCREEN MODE
   // ==========================================================================
 
-  btnFullscreen.addEventListener('click', () => {
+  function toggleFocusMode() {
+    closeAllDropdowns();
     document.body.classList.toggle('focus-mode');
     const isFocus = document.body.classList.contains('focus-mode');
     showToast(isFocus ? 'Focus mode enabled (Esc to exit)' : 'Focus mode disabled');
-  });
+  }
+
+  if (btnFullscreen) btnFullscreen.addEventListener('click', toggleFocusMode);
+  if (btnMobileFocus) btnMobileFocus.addEventListener('click', toggleFocusMode);
 
   // ==========================================================================
   // 9. DROPDOWN CONTROLS
   // ==========================================================================
 
-  function closeDropdown() {
-    exportDropdown.classList.remove('open');
+  function closeAllDropdowns() {
+    if (exportDropdown) exportDropdown.classList.remove('open');
+    if (mobileMenuDropdown) mobileMenuDropdown.classList.remove('open');
   }
 
-  btnExportToggle.addEventListener('click', (e) => {
-    e.stopPropagation();
-    exportDropdown.classList.toggle('open');
-  });
+  if (btnExportToggle) {
+    btnExportToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (mobileMenuDropdown) mobileMenuDropdown.classList.remove('open');
+      exportDropdown.classList.toggle('open');
+    });
+  }
+
+  if (btnMobileMenu) {
+    btnMobileMenu.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (exportDropdown) exportDropdown.classList.remove('open');
+      mobileMenuDropdown.classList.toggle('open');
+    });
+  }
 
   document.addEventListener('click', (e) => {
-    if (!exportDropdown.contains(e.target)) {
-      closeDropdown();
-    }
+    if (exportDropdown && exportDropdown.contains(e.target)) return;
+    if (mobileMenuDropdown && mobileMenuDropdown.contains(e.target)) return;
+    closeAllDropdowns();
   });
 
   // ==========================================================================
@@ -423,8 +520,8 @@ ${bodyHtml}
   // ==========================================================================
 
   window.addEventListener('keydown', (e) => {
-    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-    const modifier = isMac ? e.metaKey : e.ctrlKey;
+    const isMacPlatform = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const modifier = isMacPlatform ? e.metaKey : e.ctrlKey;
 
     // Ctrl+P / Cmd+P -> Perfect Print
     if (modifier && e.key.toLowerCase() === 'p') {
@@ -444,7 +541,7 @@ ${bodyHtml}
 
     // Escape -> Exit focus mode & close dropdowns
     if (e.key === 'Escape') {
-      closeDropdown();
+      closeAllDropdowns();
       if (document.body.classList.contains('focus-mode')) {
         document.body.classList.remove('focus-mode');
         showToast('Focus mode disabled');
@@ -457,6 +554,7 @@ ${bodyHtml}
   // ==========================================================================
 
   function updateNetworkBadge() {
+    if (!offlineBadge) return;
     if (navigator.onLine) {
       offlineBadge.textContent = 'Offline Ready';
       offlineBadge.style.color = '#059669';

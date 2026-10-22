@@ -44,5 +44,5 @@ app.get("/load", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Offline Docs running smoothly at http://localhost:${PORT}`);
+  console.log(`Offline Docs running smoothly at http://localhost:${PORT}`);
 });

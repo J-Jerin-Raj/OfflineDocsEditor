@@ -23,7 +23,7 @@
   
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-sheet: 0 1px 3px rgba(60, 64, 67, 0.15), 0 2px 8px rgba(60, 64, 67, 0.1);
-  --shadow-dropdown: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --shadow-dropdown: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
 
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -52,26 +52,54 @@ body {
 }
 
 /* ==========================================================================
-   1. TOP APPLICATION BAR
+   1. RESPONSIVE HELPERS
+   ========================================================================== */
+
+.desktop-only {
+  display: flex !important;
+}
+
+.mobile-only {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+  .mobile-only {
+    display: flex !important;
+  }
+}
+
+/* ==========================================================================
+   2. TOP APPLICATION BAR & BRAND LOGO
    ========================================================================== */
 
 .app-header {
-  height: 60px;
+  position: relative !important;
+  z-index: 600 !important;
   background-color: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  gap: 16px;
+  flex-direction: column;
   flex-shrink: 0;
-  z-index: 50;
 }
 
-.header-left {
+.header-main-row {
+  height: 56px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  justify-content: space-between;
+  padding: 0 18px;
+  gap: 12px;
+}
+
+/* Brand Logo */
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -82,6 +110,45 @@ body {
   flex-shrink: 0;
 }
 
+.brand-icon {
+  width: 30px;
+  height: 30px;
+  display: block;
+}
+
+.brand-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.brand-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #1f2937;
+  letter-spacing: -0.02em;
+}
+
+.brand-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #059669;
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.brand-divider {
+  width: 1px;
+  height: 24px;
+  background-color: var(--border-color);
+  margin: 0 4px;
+}
+
+/* Desktop Doc Info */
 .doc-info {
   display: flex;
   flex-direction: column;
@@ -104,8 +171,8 @@ body {
   padding: 2px 8px;
   margin-left: -8px;
   outline: none;
-  width: 260px;
-  max-width: 380px;
+  width: 240px;
+  max-width: 360px;
   transition: all 0.15s ease;
   white-space: nowrap;
   overflow: hidden;
@@ -121,7 +188,7 @@ body {
   background-color: #ffffff;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-  width: 320px;
+  width: 300px;
 }
 
 .status-row {
@@ -162,21 +229,11 @@ body {
   50% { opacity: 0.4; transform: scale(0.85); }
 }
 
-.offline-badge {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  background-color: #f3f4f6;
-  color: #4b5563;
-  padding: 1px 6px;
-  border-radius: 4px;
-  border: 1px solid #e5e7eb;
-}
-
-.header-right {
+/* Header Right Actions */
+.header-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -184,30 +241,67 @@ body {
   font-size: 12px;
   color: var(--text-muted);
   font-weight: 500;
-  padding: 4px 10px;
+  padding: 5px 10px;
   background-color: #f9fafb;
   border-radius: var(--radius-sm);
   border: 1px solid #f3f4f6;
   white-space: nowrap;
 }
 
-.action-group {
+/* Mobile Secondary Row: Document Title */
+.header-mobile-subrow {
+  height: 40px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  padding: 0 16px;
+  background-color: #fafafa;
+  border-top: 1px solid #f1f3f4;
+  gap: 12px;
+}
+
+.mobile-title-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-edit-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.mobile-doc-title-input {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  padding: 3px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-doc-title-input:focus {
+  color: var(--primary);
 }
 
 /* ==========================================================================
-   2. BUTTONS & UI CONTROLS
+   3. BUTTONS & UI CONTROLS
    ========================================================================== */
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 6px;
   height: 36px;
-  padding: 0 14px;
+  padding: 0 12px;
   font-size: 13px;
   font-weight: 500;
   border-radius: var(--radius-sm);
@@ -216,17 +310,23 @@ body {
   transition: all 0.15s ease;
   user-select: none;
   outline: none;
-}
-
-.btn-icon {
-  width: 16px;
-  height: 16px;
   flex-shrink: 0;
 }
 
+/* Ensure SVGs inside buttons never collapse to 0 size */
+.btn svg,
+.btn-icon {
+  width: 18px !important;
+  height: 18px !important;
+  flex-shrink: 0 !important;
+  display: block;
+}
+
 .btn-icon-only {
-  padding: 0;
-  width: 36px;
+  padding: 0 !important;
+  width: 36px !important;
+  min-width: 36px !important;
+  height: 36px !important;
 }
 
 .btn-primary {
@@ -278,7 +378,7 @@ body {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 190px;
+  min-width: 200px;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -286,7 +386,7 @@ body {
   padding: 6px;
   display: none;
   flex-direction: column;
-  z-index: 1000;
+  z-index: 2000 !important; /* Always on top of toolbar & canvas */
   animation: dropdownFadeIn 0.15s ease-out;
 }
 
@@ -299,11 +399,26 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+.dropdown-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  padding: 6px 12px 2px 12px;
+}
+
+.dropdown-info-item {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 .dropdown-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
+  padding: 9px 12px;
   font-size: 13px;
   color: var(--text-main);
   background: transparent;
@@ -316,9 +431,10 @@ body {
 }
 
 .dropdown-item svg {
-  width: 15px;
-  height: 15px;
+  width: 16px !important;
+  height: 16px !important;
   color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 .dropdown-item:hover {
@@ -337,28 +453,29 @@ body {
 }
 
 /* ==========================================================================
-   3. STICKY FORMATTING TOOLBAR
+   4. STICKY FORMATTING TOOLBAR & TOOL DROPDOWNS
    ========================================================================== */
 
 .toolbar-wrapper {
-  position: sticky;
-  top: 0;
-  z-index: 40;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 500 !important; /* Above canvas & document */
   background-color: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-  display: flex;
-  justify-content: center;
+  width: 100%;
+  overflow: visible !important; /* CRITICAL: Never clip dropdowns! */
 }
 
 #toolbar-container {
+  display: flex !important;
+  align-items: center;
+  flex-wrap: wrap !important;
   max-width: 1024px;
   width: 100%;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 6px 16px;
+  padding: 5px 14px;
   gap: 2px;
+  overflow: visible !important;
 }
 
 /* Quill Toolbar Overrides */
@@ -366,12 +483,15 @@ body {
   border: none !important;
   font-family: var(--font-sans) !important;
   padding: 0 !important;
+  overflow: visible !important;
 }
 
 .ql-snow .ql-formats {
-  margin-right: 10px !important;
+  margin-right: 8px !important;
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
+  overflow: visible !important;
 }
 
 .ql-snow .ql-formats:not(:last-child)::after {
@@ -380,24 +500,86 @@ body {
   width: 1px;
   height: 18px;
   background-color: #e5e7eb;
-  margin-left: 10px;
+  margin-left: 8px;
 }
 
 .ql-snow .ql-picker {
+  position: relative !important;
   font-size: 13px !important;
   font-weight: 500;
   color: #374151 !important;
+  height: 28px !important;
+  overflow: visible !important;
+}
+
+/* Ensure Quill Picker Dropdowns (Heading, Colors) Open High Above Canvas */
+.ql-snow .ql-picker.ql-expanded .ql-picker-options {
+  display: block !important;
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  z-index: 1000 !important; /* High above the document sheet */
+  background-color: #ffffff !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-dropdown) !important;
+  margin-top: 4px !important;
+  padding: 6px 0 !important;
+}
+
+.ql-snow .ql-picker-options .ql-picker-item {
+  padding: 6px 14px !important;
+  font-size: 13px !important;
+  color: var(--text-main) !important;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.ql-snow .ql-picker-options .ql-picker-item:hover {
+  background-color: #f3f4f6 !important;
+  color: var(--primary) !important;
+}
+
+/* Color Picker Dropdowns */
+.ql-snow .ql-color-picker .ql-picker-options {
+  padding: 8px !important;
+  width: 168px !important;
+  z-index: 1000 !important;
+  background-color: #ffffff !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-dropdown) !important;
+}
+
+.ql-snow .ql-icon-picker .ql-picker-options {
+  z-index: 1000 !important;
+  background-color: #ffffff !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-dropdown) !important;
+}
+
+/* Tooltip (Links & Embeds) */
+.ql-snow .ql-tooltip {
+  z-index: 1000 !important;
+  background-color: #ffffff !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-dropdown) !important;
 }
 
 .ql-snow button {
   border-radius: var(--radius-sm) !important;
   padding: 4px !important;
-  width: 28px !important;
-  height: 28px !important;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
   transition: background-color 0.12s ease;
+  flex-shrink: 0;
 }
 
 .ql-snow button:hover {
@@ -419,7 +601,7 @@ body {
 }
 
 /* ==========================================================================
-   4. WORKSPACE & DOCUMENT PAPER CANVAS
+   5. WORKSPACE & DOCUMENT PAPER CANVAS
    ========================================================================== */
 
 .workspace-area {
@@ -427,6 +609,8 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   background-color: var(--bg-canvas);
+  position: relative !important;
+  z-index: 1 !important; /* Low stacking order so toolbars & menus float above */
 }
 
 .page-viewport {
@@ -434,9 +618,11 @@ body {
   justify-content: center;
   padding: 28px 16px 80px 16px;
   min-height: calc(100vh - 120px);
+  position: relative !important;
+  z-index: 1 !important;
 }
 
-/* Standard Google Docs Paper Dimension (8.5 x 11 in @ 96 DPI = 816px) */
+/* Desktop Paper Sheet */
 .document-sheet {
   width: 816px;
   min-height: 1056px;
@@ -444,24 +630,24 @@ body {
   box-shadow: var(--shadow-sheet);
   border-radius: 2px;
   padding: 64px 72px;
-  position: relative;
+  position: relative !important;
+  z-index: 2 !important; /* Below toolbars & dropdowns */
   transition: box-shadow 0.2s ease;
 }
 
-/* Focus mode / Fullscreen */
+/* Focus / Fullscreen Mode */
 body.focus-mode .app-header {
-  transform: translateY(-100%);
-  position: fixed;
-  width: 100%;
-  transition: transform 0.25s ease;
+  display: none !important;
 }
 
 body.focus-mode .toolbar-wrapper {
-  top: 0;
+  position: sticky !important;
+  top: 0 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 /* ==========================================================================
-   5. QUILL EDITOR CONTENT TYPOGRAPHY
+   6. QUILL EDITOR CONTENT TYPOGRAPHY
    ========================================================================== */
 
 .ql-container.ql-snow {
@@ -551,7 +737,7 @@ body.focus-mode .toolbar-wrapper {
 }
 
 /* ==========================================================================
-   6. TOAST NOTIFICATION
+   7. TOAST NOTIFICATION
    ========================================================================== */
 
 .toast {
@@ -578,59 +764,95 @@ body.focus-mode .toolbar-wrapper {
 }
 
 /* ==========================================================================
-   7. RESPONSIVE DESIGN (TABLETS & PHONES)
+   8. MOBILE OPTIMIZATIONS (PHONES & TABLETS <= 768px)
    ========================================================================== */
 
-@media (max-width: 860px) {
+@media (max-width: 768px) {
+  /* Compact Header */
+  .header-main-row {
+    height: 50px;
+    padding: 0 12px;
+  }
+
+  .brand-title {
+    font-size: 17px;
+  }
+
+  .brand-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  /* Seamless Paper Canvas on Phone */
+  .workspace-area {
+    background-color: #ffffff;
+  }
+
+  .page-viewport {
+    padding: 12px 14px 60px 14px;
+    min-height: auto;
+  }
+
   .document-sheet {
     width: 100%;
-    min-height: auto;
-    padding: 36px 24px;
+    min-height: 480px;
+    padding: 8px 4px;
     box-shadow: none;
     border-radius: 0;
   }
 
-  .page-viewport {
-    padding: 12px 0 60px 0;
+  .ql-container.ql-snow {
+    font-size: 16px; /* Prevents iOS auto-zoom on input */
   }
 
-  .app-header {
-    padding: 0 12px;
+  .ql-editor {
+    min-height: 480px;
+    line-height: 1.6;
   }
 
-  .doc-title-input {
-    width: 160px;
+  /* Touch-friendly Toolbar on Mobile */
+  .toolbar-wrapper {
+    overflow: visible !important;
   }
 
-  .doc-stats {
-    display: none;
+  #toolbar-container {
+    padding: 6px 10px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    overflow: visible !important;
+    width: 100% !important;
   }
 
-  .btn span {
-    display: none;
+  .ql-snow button {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
   }
 
-  .btn-kbd {
-    display: none;
+  /* Mobile More Menu */
+  .dropdown-menu-right {
+    right: 4px;
+    min-width: 220px;
+    z-index: 2000 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .ql-snow .ql-color-picker .ql-picker-options {
+    right: 0 !important;
+    left: auto !important;
   }
 }
 
 /* ==========================================================================
-   8. PERFECT PRINT STYLING (@media print)
-   ========================================================================== 
-   The user explicitly requested: "make it perfect with print button".
-   This section guarantees:
-   - Zero UI clutter in prints (hides headers, toolbars, buttons, alerts).
-   - Preserves document colors, font weights, and crisp page margins.
-   - Natural pagination across multiple pages without overflow or cuts.
-   - Headers stay with following paragraphs (no orphan titles).
-   - Crisp rendering for text, blockquotes, code blocks, lists, and images.
+   9. PERFECT PRINT STYLING (@media print)
    ========================================================================== */
 
 @media print {
   @page {
     size: auto;
-    margin: 20mm 15mm 20mm 15mm; /* Clean standard printing margins */
+    margin: 20mm 15mm 20mm 15mm;
   }
 
   /* 1. Completely remove all UI elements */
