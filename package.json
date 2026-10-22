@@ -1,7 +1,11 @@
 {
-  "name": "docs-app",
+  "name": "offline-docs",
   "version": "1.0.0",
+  "description": "Ultra-lightweight offline document editor with perfect print support.",
   "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
     "express": "^4.18.2"
   }

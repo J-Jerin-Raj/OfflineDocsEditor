@@ -2,25 +2,201 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Docs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Ultra-lightweight, offline document editor with perfect print support and zero memory bloat.">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Offline Docs</title>
 
-  <!-- Quill Theme -->
-  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <!-- Local Favicon & PWA Manifest -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="manifest" href="manifest.json">
 
-  <!-- Custom CSS -->
+  <!-- Local Offline Quill Stylesheet (Zero CDN dependencies) -->
+  <link rel="stylesheet" href="vendor/quill.snow.css">
+
+  <!-- Custom Document & Print Styling -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container">
-  <div id="editor"></div>
-</div>
+  <!-- Top Application Bar -->
+  <header class="app-header no-print">
+    <div class="header-left">
+      <div class="brand-logo" title="Offline Docs - Lightweight & Fast">
+        <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
+          <path d="M12 6C9.79086 6 8 7.79086 8 10V38C8 40.2091 9.79086 42 12 42H36C38.2091 42 40 40.2091 40 38V18L28 6H12Z" fill="#2563eb" />
+          <path d="M28 6V16C28 17.1046 28.8954 18 30 18H40L28 6Z" fill="#93c5fd" />
+          <rect x="15" y="22" width="18" height="2.5" rx="1.25" fill="#ffffff" />
+          <rect x="15" y="27.5" width="18" height="2.5" rx="1.25" fill="#ffffff" />
+          <rect x="15" y="33" width="11" height="2.5" rx="1.25" fill="#ffffff" />
+        </svg>
+      </div>
 
-<!-- Quill -->
-<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+      <div class="doc-info">
+        <div class="title-row">
+          <input 
+            type="text" 
+            id="doc-title" 
+            class="doc-title-input" 
+            value="Untitled Document" 
+            placeholder="Untitled Document"
+            title="Click to rename document" 
+            spellcheck="false"
+            autocomplete="off"
+          />
+        </div>
+        <div class="status-row">
+          <div id="status-pill" class="status-pill status-saved" title="Document auto-saves continuously">
+            <span class="status-dot"></span>
+            <span id="status-text">Saved</span>
+          </div>
+          <span class="offline-badge" id="offline-badge" title="Running 100% locally with zero internet needed">Offline Ready</span>
+        </div>
+      </div>
+    </div>
 
-<!-- Your Script -->
-<script src="script.js"></script>
+    <div class="header-right">
+      <!-- Live Stats -->
+      <div class="doc-stats" id="doc-stats" title="Real-time word and character count">
+        <span id="word-count">0</span> words · <span id="char-count">0</span> chars
+      </div>
 
+      <!-- Action Buttons -->
+      <div class="action-group">
+        <!-- The Print Button -->
+        <button id="btn-print" class="btn btn-primary" title="Print document or Save to PDF (Ctrl+P / Cmd+P)">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          <span>Print</span>
+          <kbd class="btn-kbd">⌘P</kbd>
+        </button>
+
+        <!-- Export Dropdown -->
+        <div class="dropdown" id="export-dropdown">
+          <button id="btn-export-toggle" class="btn btn-secondary dropdown-toggle" title="Export document">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Export</span>
+          </button>
+          <div class="dropdown-menu" id="export-menu">
+            <button class="dropdown-item" id="btn-export-pdf">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              <span>Print to PDF</span>
+            </button>
+            <button class="dropdown-item" id="btn-export-txt">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+              <span>Plain Text (.txt)</span>
+            </button>
+            <button class="dropdown-item" id="btn-export-html">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+              <span>HTML Document (.html)</span>
+            </button>
+            <button class="dropdown-item" id="btn-export-md">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"></rect><polyline points="7 15 7 9 10 12 13 9 13 15"></polyline><polyline points="17 9 17 15"></polyline></svg>
+              <span>Markdown (.md)</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" id="btn-export-json">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              <span>Raw Backup (.json)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- New Document -->
+        <button id="btn-new" class="btn btn-secondary btn-icon-only" title="New document">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+
+        <!-- Fullscreen / Focus Mode -->
+        <button id="btn-fullscreen" class="btn btn-secondary btn-icon-only" title="Toggle Focus / Fullscreen Mode">
+          <svg id="fullscreen-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sticky Formatting Toolbar -->
+  <div id="toolbar-wrapper" class="toolbar-wrapper no-print">
+    <div id="toolbar-container">
+      <!-- Headers Dropdown -->
+      <span class="ql-formats">
+        <select class="ql-header">
+          <option value="1">Heading 1</option>
+          <option value="2">Heading 2</option>
+          <option value="3">Heading 3</option>
+          <option selected>Normal Text</option>
+        </select>
+      </span>
+
+      <!-- Text Styling -->
+      <span class="ql-formats">
+        <button class="ql-bold" title="Bold (Ctrl+B)"></button>
+        <button class="ql-italic" title="Italic (Ctrl+I)"></button>
+        <button class="ql-underline" title="Underline (Ctrl+U)"></button>
+        <button class="ql-strike" title="Strikethrough"></button>
+      </span>
+
+      <!-- Colors -->
+      <span class="ql-formats">
+        <select class="ql-color" title="Text Color"></select>
+        <select class="ql-background" title="Highlight Color"></select>
+      </span>
+
+      <!-- Alignment -->
+      <span class="ql-formats">
+        <button class="ql-align" value="" title="Align Left"></button>
+        <button class="ql-align" value="center" title="Align Center"></button>
+        <button class="ql-align" value="right" title="Align Right"></button>
+        <button class="ql-align" value="justify" title="Justify"></button>
+      </span>
+
+      <!-- Lists -->
+      <span class="ql-formats">
+        <button class="ql-list" value="ordered" title="Numbered List"></button>
+        <button class="ql-list" value="bullet" title="Bulleted List"></button>
+      </span>
+
+      <!-- Blocks & Inserts -->
+      <span class="ql-formats">
+        <button class="ql-blockquote" title="Quote"></button>
+        <button class="ql-code-block" title="Code Block"></button>
+        <button class="ql-link" title="Insert Link"></button>
+        <button class="ql-image" title="Insert Image"></button>
+        <button class="ql-clean" title="Clear Formatting"></button>
+      </span>
+    </div>
+  </div>
+
+  <!-- Document Canvas / Paper Workspace -->
+  <main class="workspace-area" id="workspace">
+    <div class="page-viewport">
+      <div class="document-sheet" id="document-sheet">
+        <div id="editor"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Floating Toast Notification -->
+  <div id="toast" class="toast no-print" role="alert" aria-live="polite"></div>
+
+  <!-- Local Offline Quill Script (Zero CDN dependencies) -->
+  <script src="vendor/quill.min.js"></script>
+
+  <!-- Application Logic -->
+  <script src="script.js"></script>
 </body>
 </html>

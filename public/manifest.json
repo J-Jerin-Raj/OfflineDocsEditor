@@ -1,0 +1,16 @@
+{
+  "name": "Offline Docs",
+  "short_name": "OfflineDocs",
+  "description": "Ultra-lightweight, easy-to-use offline document editor with perfect print support.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f1f3f4",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
