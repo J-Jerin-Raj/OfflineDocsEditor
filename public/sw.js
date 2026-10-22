@@ -1,8 +1,9 @@
 // Offline Docs - Lightweight Service Worker
-const CACHE_NAME = 'offline-docs-v2';
+const CACHE_NAME = 'offline-docs-v5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/style.css?v=5',
   '/style.css',
   '/script.js',
   '/vendor/quill.min.js',
