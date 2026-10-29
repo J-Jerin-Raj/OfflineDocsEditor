@@ -75,6 +75,11 @@
 
       <!-- Right: Action Controls -->
       <div class="header-actions">
+        <!-- Active Collaborators Avatars -->
+        <div class="collaborators-container" id="collaborators-container" title="Active Collaborators (Click your avatar to change name)">
+          <div class="collaborators-list" id="collaborators-list"></div>
+        </div>
+
         <!-- Live Stats (Desktop) -->
         <div class="doc-stats desktop-only" id="doc-stats" title="Real-time word and character count">
           <span id="word-count">0</span> words · <span id="char-count">0</span> chars
@@ -154,6 +159,11 @@
             <!-- Mobile Stats Item -->
             <div class="dropdown-info-item">
               <span id="mobile-word-count">0</span> words · <span id="mobile-char-count">0</span> chars
+            </div>
+            <!-- Mobile Collaborator Item -->
+            <div class="dropdown-info-item mobile-collab-row">
+              <span id="mobile-collab-count">1 user online</span>
+              <button type="button" class="btn-text-action" id="btn-change-name">Change Name</button>
             </div>
             <div class="dropdown-divider"></div>
             <button class="dropdown-item" id="btn-mobile-new">
@@ -279,7 +289,10 @@
   <!-- Local Offline Quill Script (Zero CDN dependencies) -->
   <script src="vendor/quill.min.js"></script>
 
+  <!-- Local Offline Socket.IO Script -->
+  <script src="vendor/socket.io.min.js"></script>
+
   <!-- Application Logic -->
-  <script src="script.js"></script>
+  <script src="script.js?v=6"></script>
 </body>
 </html>

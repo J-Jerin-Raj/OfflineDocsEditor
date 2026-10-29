@@ -1,13 +1,28 @@
 // ==========================================================================
-// OFFLINE DOCS - CLIENT APPLICATION LOGIC
+// OFFLINE DOCS - REAL-TIME COLLABORATION & CLIENT LOGIC
 // ==========================================================================
 
 (function () {
   'use strict';
 
-  // Constants & Keys
+  // Constants & Storage Keys
   const STORAGE_KEY = 'offline_docs_backup_v1';
+  const USER_STORAGE_KEY = 'offline_docs_user_info_v1';
   const DEFAULT_TITLE = 'Untitled Document';
+
+  // Preset Colors for Collaborators
+  const COLLAB_COLORS = [
+    '#ea4335', // Google Red
+    '#1a73e8', // Google Blue
+    '#34a853', // Google Green
+    '#f9ab00', // Google Amber
+    '#9334e6', // Purple
+    '#e52592', // Magenta/Pink
+    '#00897b', // Teal
+    '#f4511e', // Orange
+    '#3949ab', // Indigo
+    '#00acc1'  // Cyan
+  ];
 
   // DOM Elements (Desktop & Mobile)
   const docTitleInput = document.getElementById('doc-title');
@@ -26,6 +41,11 @@
   
   const btnPrint = document.getElementById('btn-print');
   
+  // Collaborators UI
+  const collaboratorsList = document.getElementById('collaborators-list');
+  const mobileCollabCount = document.getElementById('mobile-collab-count');
+  const btnChangeName = document.getElementById('btn-change-name');
+
   // Desktop Export Dropdown
   const btnExportToggle = document.getElementById('btn-export-toggle');
   const exportDropdown = document.getElementById('export-dropdown');
@@ -50,7 +70,39 @@
 
   const toastEl = document.getElementById('toast');
 
-  // Initialize Quill Editor (Snow Theme, Custom Toolbar)
+  // ==========================================================================
+  // 1. LOCAL USER PROFILE MANAGEMENT
+  // ==========================================================================
+
+  function getLocalUserProfile() {
+    try {
+      const raw = localStorage.getItem(USER_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.name) return parsed;
+      }
+    } catch (e) {}
+
+    const randomNum = Math.floor(100 + Math.random() * 900);
+    const randomColor = COLLAB_COLORS[Math.floor(Math.random() * COLLAB_COLORS.length)];
+    const profile = {
+      name: `User ${randomNum}`,
+      color: randomColor
+    };
+
+    try {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(profile));
+    } catch (e) {}
+    return profile;
+  }
+
+  const myProfile = getLocalUserProfile();
+  let myUserId = null;
+
+  // ==========================================================================
+  // 2. QUILL EDITOR INITIALIZATION
+  // ==========================================================================
+
   const quill = new Quill('#editor', {
     modules: {
       toolbar: '#toolbar-container'
@@ -59,37 +111,396 @@
     theme: 'snow'
   });
 
+  const Delta = Quill.import('delta');
+
+  // Ensure remote cursor overlay container exists inside Quill container
+  let cursorOverlay = document.getElementById('cursor-overlay');
+  if (!cursorOverlay) {
+    cursorOverlay = document.createElement('div');
+    cursorOverlay.id = 'cursor-overlay';
+    cursorOverlay.className = 'cursor-overlay no-print';
+    quill.container.appendChild(cursorOverlay);
+  }
+
+  // Active remote users map: userId -> { id, name, color, range, idleTimer }
+  const remoteUsers = new Map();
+
   // State
   let saveTimeout = null;
   let toastTimeout = null;
   let isSaving = false;
 
   // ==========================================================================
-  // 1. PERFECT PRINT SYSTEM
+  // 3. SOCKET.IO REAL-TIME COLLABORATION SETUP
   // ==========================================================================
 
-  /**
-   * Triggers browser print with zero DOM destruction.
-   * Leverages pure CSS @media print for maximum performance, fidelity & speed.
-   */
+  let socket = null;
+
+  if (typeof io !== 'undefined') {
+    socket = io({
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      query: {
+        name: myProfile.name,
+        color: myProfile.color || ''
+      }
+    });
+
+    socket.on('connect', () => {
+      myUserId = socket.id;
+      updateStatus('saved', 'Connected');
+      updateCollaboratorAvatars();
+      // Send current cursor location if focused
+      const sel = quill.getSelection();
+      if (sel) {
+        socket.emit('cursor-move', sel);
+      }
+    });
+
+    socket.on('disconnect', () => {
+      updateStatus('offline', 'Offline');
+      // Clear remote cursors when disconnected
+      clearAllRemoteCursors();
+      updateCollaboratorAvatars();
+    });
+
+    // Initial document sync from server
+    socket.on('init-document', (data) => {
+      myUserId = data.myUser.id;
+      if (data.myUser.color) {
+        myProfile.color = data.myUser.color;
+        try { localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(myProfile)); } catch (e) {}
+      }
+
+      // Apply title
+      if (data.title) {
+        setTitle(data.title);
+      }
+
+      // Apply document content
+      if (data.content) {
+        applyDocData(data.content);
+        saveToLocalStorage(getDocumentData());
+      }
+
+      // Initialize existing collaborators
+      remoteUsers.clear();
+      if (Array.isArray(data.users)) {
+        data.users.forEach((u) => {
+          if (u.id !== myUserId) {
+            remoteUsers.set(u.id, u);
+          }
+        });
+      }
+
+      updateCollaboratorAvatars();
+      renderAllRemoteCursors();
+      updateStatus('saved', 'Saved');
+    });
+
+    // Another collaborator joined
+    socket.on('user-joined', (user) => {
+      if (user.id !== myUserId) {
+        remoteUsers.set(user.id, user);
+        updateCollaboratorAvatars();
+        showToast(`${user.name} joined`);
+      }
+    });
+
+    // Collaborator disconnected
+    socket.on('user-left', ({ userId }) => {
+      const u = remoteUsers.get(userId);
+      if (u) {
+        showToast(`${u.name} left`);
+        removeCursorElements(userId);
+        remoteUsers.delete(userId);
+        updateCollaboratorAvatars();
+      }
+    });
+
+    // Collaborator updated display name or color
+    socket.on('user-updated', (user) => {
+      if (user.id === myUserId) {
+        myProfile.name = user.name;
+        myProfile.color = user.color;
+        try { localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(myProfile)); } catch (e) {}
+      } else if (remoteUsers.has(user.id)) {
+        const u = remoteUsers.get(user.id);
+        u.name = user.name;
+        u.color = user.color;
+        renderRemoteCursor(u);
+      }
+      updateCollaboratorAvatars();
+    });
+
+    // Real-time document edit received from a collaborator
+    socket.on('doc-change', ({ delta, userId }) => {
+      // 1. Apply delta locally using 'api' source to prevent echo loop
+      quill.updateContents(delta, 'api');
+
+      // 2. Transform remote cursors based on the incoming delta
+      if (Delta) {
+        const deltaObj = new Delta(delta);
+        remoteUsers.forEach((u) => {
+          if (u.range && typeof u.range.index === 'number') {
+            u.range.index = deltaObj.transformPosition(u.range.index);
+          }
+        });
+        renderAllRemoteCursors();
+      }
+
+      // 3. Update word/char statistics and save local copy
+      updateStats();
+      saveToLocalStorage(getDocumentData());
+      updateStatus('saved', 'Saved');
+    });
+
+    // Real-time document title change
+    socket.on('title-change', ({ title, userId }) => {
+      setTitle(title);
+      saveToLocalStorage(getDocumentData());
+    });
+
+    // Real-time cursor/selection update from a collaborator
+    socket.on('cursor-move', ({ userId, range, user }) => {
+      if (userId === myUserId) return;
+      let existing = remoteUsers.get(userId);
+      if (!existing) {
+        existing = user || { id: userId, name: 'Collaborator', color: '#1a73e8' };
+        remoteUsers.set(userId, existing);
+        updateCollaboratorAvatars();
+      }
+      existing.range = range;
+      if (user && user.name) existing.name = user.name;
+      if (user && user.color) existing.color = user.color;
+      renderRemoteCursor(existing);
+    });
+
+    // Remove remote cursor
+    socket.on('cursor-remove', ({ userId }) => {
+      removeCursorElements(userId);
+    });
+  }
+
+  // ==========================================================================
+  // 4. REMOTE CURSOR & SELECTION RENDERING ENGINE
+  // ==========================================================================
+
+  function renderRemoteCursor(user) {
+    if (!user || !user.range) {
+      removeCursorElements(user.id);
+      return;
+    }
+
+    const docLength = quill.getLength();
+    const rawIndex = user.range.index;
+    if (typeof rawIndex !== 'number') {
+      removeCursorElements(user.id);
+      return;
+    }
+
+    const safeIndex = Math.min(Math.max(0, rawIndex), Math.max(0, docLength - 1));
+    
+    // Caret index (at end of selection if length > 0)
+    const caretIndex = user.range.length ? Math.min(safeIndex + user.range.length, docLength - 1) : safeIndex;
+    const bounds = quill.getBounds(caretIndex);
+    if (!bounds) return;
+
+    // 1. Caret & Name Flag DOM
+    let cursorEl = document.getElementById(`remote-cursor-${user.id}`);
+    if (!cursorEl) {
+      cursorEl = document.createElement('div');
+      cursorEl.id = `remote-cursor-${user.id}`;
+      cursorEl.className = 'remote-cursor is-active';
+
+      const caret = document.createElement('div');
+      caret.className = 'remote-cursor-caret';
+      caret.style.backgroundColor = user.color;
+
+      const flag = document.createElement('div');
+      flag.className = 'remote-cursor-flag';
+      flag.style.backgroundColor = user.color;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'remote-cursor-name';
+      nameSpan.textContent = user.name;
+
+      flag.appendChild(nameSpan);
+      cursorEl.appendChild(caret);
+      cursorEl.appendChild(flag);
+      cursorOverlay.appendChild(cursorEl);
+    }
+
+    // Position cursor
+    cursorEl.style.transform = `translate3d(${bounds.left}px, ${bounds.top}px, 0)`;
+
+    const caretEl = cursorEl.querySelector('.remote-cursor-caret');
+    if (caretEl) {
+      caretEl.style.height = `${bounds.height}px`;
+      caretEl.style.backgroundColor = user.color;
+    }
+
+    const flagEl = cursorEl.querySelector('.remote-cursor-flag');
+    if (flagEl) {
+      flagEl.style.backgroundColor = user.color;
+      const nameEl = flagEl.querySelector('.remote-cursor-name');
+      if (nameEl) nameEl.textContent = user.name;
+      // Flip flag below caret if near top edge of paper
+      if (bounds.top < 22) {
+        flagEl.classList.add('flip-down');
+      } else {
+        flagEl.classList.remove('flip-down');
+      }
+    }
+
+    // Highlight as active, then idle fade after 3.5s
+    cursorEl.classList.add('is-active');
+    cursorEl.classList.remove('is-idle');
+    clearTimeout(user.idleTimer);
+    user.idleTimer = setTimeout(() => {
+      cursorEl.classList.remove('is-active');
+      cursorEl.classList.add('is-idle');
+    }, 3500);
+
+    // 2. Selection Highlight (if range.length > 0)
+    let selEl = document.getElementById(`remote-sel-${user.id}`);
+    if (user.range.length > 0) {
+      const selLength = Math.min(user.range.length, docLength - safeIndex);
+      const selBounds = quill.getBounds(safeIndex, selLength);
+      if (selBounds) {
+        if (!selEl) {
+          selEl = document.createElement('div');
+          selEl.id = `remote-sel-${user.id}`;
+          selEl.className = 'remote-selection';
+          cursorOverlay.appendChild(selEl);
+        }
+        selEl.style.left = `${selBounds.left}px`;
+        selEl.style.top = `${selBounds.top}px`;
+        selEl.style.width = `${selBounds.width}px`;
+        selEl.style.height = `${selBounds.height}px`;
+        selEl.style.backgroundColor = user.color;
+      }
+    } else if (selEl) {
+      selEl.remove();
+    }
+  }
+
+  function removeCursorElements(userId) {
+    const cursorEl = document.getElementById(`remote-cursor-${userId}`);
+    if (cursorEl) cursorEl.remove();
+    const selEl = document.getElementById(`remote-sel-${userId}`);
+    if (selEl) selEl.remove();
+  }
+
+  function clearAllRemoteCursors() {
+    if (cursorOverlay) {
+      cursorOverlay.innerHTML = '';
+    }
+  }
+
+  function renderAllRemoteCursors() {
+    remoteUsers.forEach((user) => {
+      renderRemoteCursor(user);
+    });
+  }
+
+  // Re-calculate bounds whenever window resizes or document structure adjusts
+  window.addEventListener('resize', renderAllRemoteCursors);
+
+  // ==========================================================================
+  // 5. COLLABORATOR AVATARS & PRESENCE BAR
+  // ==========================================================================
+
+  function updateCollaboratorAvatars() {
+    if (!collaboratorsList) return;
+    collaboratorsList.innerHTML = '';
+
+    const allUsers = [];
+
+    // Local user
+    allUsers.push({
+      id: myUserId || 'local',
+      name: myProfile.name,
+      color: myProfile.color || '#1a73e8',
+      isMe: true
+    });
+
+    // Remote users
+    remoteUsers.forEach((u) => {
+      allUsers.push({
+        id: u.id,
+        name: u.name,
+        color: u.color,
+        isMe: false
+      });
+    });
+
+    if (mobileCollabCount) {
+      mobileCollabCount.textContent = `${allUsers.length} user${allUsers.length === 1 ? '' : 's'} active`;
+    }
+
+    allUsers.forEach((u) => {
+      const avatar = document.createElement('div');
+      avatar.className = `collaborator-avatar ${u.isMe ? 'is-me' : ''}`;
+      avatar.style.backgroundColor = u.color;
+      avatar.title = u.isMe ? `${u.name} (You - Click to change name)` : u.name;
+
+      const initials = u.name
+        .split(/\s+/)
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase() || 'U';
+
+      avatar.textContent = initials;
+
+      if (u.isMe) {
+        avatar.addEventListener('click', promptChangeName);
+      }
+      collaboratorsList.appendChild(avatar);
+    });
+  }
+
+  function promptChangeName() {
+    const current = myProfile.name || 'User';
+    const newName = window.prompt('Enter your display name for collaborators:', current);
+    if (newName && newName.trim() && newName.trim() !== current) {
+      const clean = newName.trim();
+      myProfile.name = clean;
+      try {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(myProfile));
+      } catch (e) {}
+
+      if (socket && socket.connected) {
+        socket.emit('user-update', { name: clean });
+      }
+      updateCollaboratorAvatars();
+      showToast(`Display name set to "${clean}"`);
+    }
+  }
+
+  if (btnChangeName) {
+    btnChangeName.addEventListener('click', promptChangeName);
+  }
+
+  // ==========================================================================
+  // 6. PERFECT PRINT SYSTEM
+  // ==========================================================================
+
   function printDocument() {
     const rawTitle = getCurrentTitle();
-    const previousPageTitle = document.title;
-
-    // Set page title so browser's native print/PDF engine names the file accurately
     document.title = rawTitle;
 
-    // Small delay ensures title is updated before print preview is generated
     setTimeout(() => {
       window.print();
-      // Restore application title afterwards
       document.title = `${rawTitle} - Offline Docs`;
     }, 60);
 
     showToast('Print preview generated');
   }
 
-  // Bind Print Events
   btnPrint.addEventListener('click', printDocument);
 
   if (btnExportPdf) {
@@ -106,21 +517,19 @@
     });
   }
 
-  // Set OS shortcut hint on print button
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
   const printKbd = document.querySelector('.btn-kbd');
   if (printKbd) {
     printKbd.textContent = isMac ? '⌘P' : 'Ctrl+P';
   }
 
-  // Restore document title reliably when print preview closes
   window.addEventListener('afterprint', () => {
     const rawTitle = getCurrentTitle();
     document.title = `${rawTitle} - Offline Docs`;
   });
 
   // ==========================================================================
-  // 2. STATUS & TOAST NOTIFICATIONS
+  // 7. STATUS & TOAST NOTIFICATIONS
   // ==========================================================================
 
   function updateStatus(state, message) {
@@ -155,7 +564,7 @@
   }
 
   // ==========================================================================
-  // 3. STATS (WORD & CHAR COUNT)
+  // 8. STATS (WORD & CHAR COUNT)
   // ==========================================================================
 
   function updateStats() {
@@ -174,7 +583,7 @@
   }
 
   // ==========================================================================
-  // 4. TITLE SYNC (DESKTOP & MOBILE INPUTS)
+  // 9. TITLE SYNC (DESKTOP & MOBILE INPUTS)
   // ==========================================================================
 
   function getCurrentTitle() {
@@ -197,6 +606,9 @@
   function handleTitleInput(sourceInput) {
     const title = sourceInput.value.trim() || DEFAULT_TITLE;
     setTitle(title);
+    if (socket && socket.connected) {
+      socket.emit('title-change', title);
+    }
     triggerAutoSave();
   }
 
@@ -221,7 +633,7 @@
   }
 
   // ==========================================================================
-  // 5. STORAGE & SYNC (LOCALSTORAGE + NODE SERVER)
+  // 10. STORAGE & PERSISTENCE (LOCALSTORAGE + SERVER)
   // ==========================================================================
 
   function getDocumentData() {
@@ -232,7 +644,6 @@
     };
   }
 
-  // Save to LocalStorage immediately
   function saveToLocalStorage(data) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -241,7 +652,6 @@
     }
   }
 
-  // Save to Server via Fetch
   async function saveDoc() {
     isSaving = true;
     updateStatus('saving', 'Saving...');
@@ -250,7 +660,15 @@
     // 1. Instant local persistence
     saveToLocalStorage(data);
 
-    // 2. Server persistence
+    // 2. Real-time server snapshot emit
+    if (socket && socket.connected) {
+      socket.emit('doc-save', data);
+      updateStatus('saved', 'Saved');
+      isSaving = false;
+      return;
+    }
+
+    // 3. REST fallback if socket is disconnected
     try {
       const response = await fetch('/save', {
         method: 'POST',
@@ -264,14 +682,12 @@
         updateStatus('offline', 'Saved locally');
       }
     } catch (err) {
-      // Server is offline / unreachable: safe local fallback
       updateStatus('offline', 'Saved locally');
     } finally {
       isSaving = false;
     }
   }
 
-  // Debounced auto-save on typing
   function triggerAutoSave() {
     updateStatus('saving', 'Saving...');
     clearTimeout(saveTimeout);
@@ -296,12 +712,12 @@
       console.warn('LocalStorage load failed:', e);
     }
 
-    // Step 2: Fetch from server if available
+    // Step 2: Fetch from server if Socket hasn't already provided it
     try {
       const res = await fetch('/load');
       if (res.ok) {
         const serverData = await res.json();
-        if (serverData) {
+        if (serverData && (serverData.content || serverData.ops)) {
           applyDocData(serverData);
           saveToLocalStorage(getDocumentData());
           updateStatus('saved', 'Saved');
@@ -309,7 +725,7 @@
         }
       }
     } catch (err) {
-      console.log('Server not reachable, continuing in full offline mode');
+      console.log('Server fetch offline, using local store');
     }
 
     if (loadedFromLocal) {
@@ -319,7 +735,6 @@
     }
   }
 
-  // Helper to apply title and Delta content
   function applyDocData(data) {
     if (data.title) {
       setTitle(data.title);
@@ -328,15 +743,15 @@
     if (data.content && data.content.ops) {
       quill.setContents(data.content, 'silent');
     } else if (data.ops) {
-      // Backward compatibility with legacy format
       quill.setContents(data, 'silent');
     }
 
     updateStats();
+    renderAllRemoteCursors();
   }
 
   // ==========================================================================
-  // 6. EXPORT UTILITIES (TXT, HTML, MD, JSON)
+  // 11. EXPORT UTILITIES (TXT, HTML, MD, JSON)
   // ==========================================================================
 
   function downloadBlob(content, filename, type) {
@@ -379,7 +794,7 @@
     max-width: 800px;
     margin: 40px auto;
     padding: 0 20px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
     line-height: 1.65;
     color: #1f2937;
   }
@@ -434,7 +849,6 @@ ${bodyHtml}
     downloadBlob(jsonStr, getSanitizedFilename('json'), 'application/json');
   }
 
-  // Bind Export Listeners (Desktop & Mobile)
   if (btnExportTxt) btnExportTxt.addEventListener('click', exportTxt);
   if (btnMobileTxt) btnMobileTxt.addEventListener('click', exportTxt);
 
@@ -448,7 +862,7 @@ ${bodyHtml}
   if (btnMobileJson) btnMobileJson.addEventListener('click', exportJson);
 
   // ==========================================================================
-  // 7. NEW DOCUMENT ACTION
+  // 12. NEW DOCUMENT ACTION
   // ==========================================================================
 
   function startNewDocument() {
@@ -471,7 +885,7 @@ ${bodyHtml}
   if (btnMobileNew) btnMobileNew.addEventListener('click', startNewDocument);
 
   // ==========================================================================
-  // 8. FOCUS / FULLSCREEN MODE
+  // 13. FOCUS / FULLSCREEN MODE
   // ==========================================================================
 
   function toggleFocusMode() {
@@ -485,7 +899,7 @@ ${bodyHtml}
   if (btnMobileFocus) btnMobileFocus.addEventListener('click', toggleFocusMode);
 
   // ==========================================================================
-  // 9. DROPDOWN CONTROLS
+  // 14. DROPDOWN CONTROLS
   // ==========================================================================
 
   function closeAllDropdowns() {
@@ -516,7 +930,7 @@ ${bodyHtml}
   });
 
   // ==========================================================================
-  // 10. KEYBOARD SHORTCUTS
+  // 15. KEYBOARD SHORTCUTS
   // ==========================================================================
 
   window.addEventListener('keydown', (e) => {
@@ -550,7 +964,7 @@ ${bodyHtml}
   });
 
   // ==========================================================================
-  // 11. ONLINE / OFFLINE DETECTION & SERVICE WORKER
+  // 16. NETWORK BADGE & SERVICE WORKER
   // ==========================================================================
 
   function updateNetworkBadge() {
@@ -567,6 +981,9 @@ ${bodyHtml}
   window.addEventListener('online', () => {
     updateNetworkBadge();
     showToast('Back online - syncing...');
+    if (socket && !socket.connected) {
+      socket.connect();
+    }
     saveDoc();
   });
 
@@ -578,7 +995,6 @@ ${bodyHtml}
 
   updateNetworkBadge();
 
-  // Register Service Worker for true 100% offline caching
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js').catch((err) => {
@@ -588,15 +1004,36 @@ ${bodyHtml}
   }
 
   // ==========================================================================
-  // 12. INITIALIZATION
+  // 17. DOCUMENT EVENT BINDINGS (TEXT & SELECTION CHANGES)
   // ==========================================================================
 
-  quill.on('text-change', () => {
+  quill.on('text-change', (delta, oldDelta, source) => {
     updateStats();
-    triggerAutoSave();
+
+    // Only broadcast when change originated from local user typing
+    if (source === 'user') {
+      if (socket && socket.connected) {
+        socket.emit('doc-change', delta);
+      }
+      triggerAutoSave();
+
+      // Broadcast updated cursor position immediately after typing
+      const sel = quill.getSelection();
+      if (sel && socket && socket.connected) {
+        socket.emit('cursor-move', sel);
+      }
+    }
   });
 
-  // Load document on boot
+  quill.on('selection-change', (range, oldRange, source) => {
+    // Broadcast cursor/selection movement to collaborators
+    if (socket && socket.connected) {
+      socket.emit('cursor-move', range);
+    }
+  });
+
+  // Initial load
   loadDoc();
+  updateCollaboratorAvatars();
 
 })();
