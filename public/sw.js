@@ -1,11 +1,11 @@
 // Offline Docs - Lightweight Service Worker
-const CACHE_NAME = 'offline-docs-v6';
+const CACHE_NAME = 'offline-docs-v7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/style.css?v=5',
+  '/style.css?v=6',
   '/style.css',
-  '/script.js?v=6',
+  '/script.js?v=7',
   '/script.js',
   '/vendor/quill.min.js',
   '/vendor/quill.snow.css',
@@ -38,8 +38,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Skip POST requests and Socket.IO long-polling/transports
-  if (event.request.method !== 'GET' || url.pathname.startsWith('/socket.io/')) {
+  // Skip POST requests, API routes, and Socket.IO long-polling/transports
+  if (event.request.method !== 'GET' || url.pathname.startsWith('/socket.io/') || url.pathname.startsWith('/api/')) {
     return;
   }
 

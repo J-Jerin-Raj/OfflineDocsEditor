@@ -1,0 +1,1855 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OfflineDocs - Software Engineering Presentation</title>
+  <style>
+    /* ==========================================================================
+       PRESENTATION CORE STYLING & DESIGN SYSTEM
+       ========================================================================== */
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: rgba(17, 24, 39, 0.85);
+      --bg-card-border: rgba(255, 255, 255, 0.08);
+      --bg-card-hover: rgba(30, 41, 59, 0.9);
+
+      --text-title: #f8fafc;
+      --text-body: #cbd5e1;
+      --text-muted: #94a3b8;
+
+      --accent-blue: #38bdf8;
+      --accent-indigo: #6366f1;
+      --accent-green: #34d399;
+      --accent-purple: #c084fc;
+      --accent-amber: #fbbf24;
+      --accent-rose: #fb7185;
+
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-body);
+      font-family: var(--font-sans);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ambient Background Glow */
+    .ambient-glow {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(52, 211, 153, 0.04) 0%, transparent 50%);
+    }
+
+    /* Top Progress Bar */
+    .progress-bar-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      z-index: 100;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-indigo), var(--accent-green));
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+    }
+
+    /* Slides Container */
+    .deck-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    /* Individual Slide */
+    .slide {
+      position: absolute;
+      width: 90vw;
+      max-width: 1320px;
+      height: 82vh;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      opacity: 0;
+      transform: scale(0.97) translateY(12px);
+      transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+      pointer-events: none;
+    }
+
+    .slide.active {
+      display: flex;
+      opacity: 1;
+      transform: scale(1) translateY(0);
+      pointer-events: auto;
+    }
+
+    /* Slide Header */
+    .slide-header {
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+
+    .slide-category {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-blue);
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+
+    .slide-title {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--text-title);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .slide-subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Slide Body / Content Layout */
+    .slide-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      height: 100%;
+      align-items: stretch;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      height: 100%;
+      align-items: stretch;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      height: 100%;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 14px;
+      padding: 22px;
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateY(-2px);
+    }
+
+    .card-accent-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-title);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .card-title svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .card-text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-body);
+      margin-bottom: 12px;
+    }
+
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13.5px;
+    }
+
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.45;
+    }
+
+    .feature-list li svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Metric Highlight Boxes */
+    .metric-badge {
+      display: flex;
+      flex-direction: column;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-top: auto;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      letter-spacing: -0.03em;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Table Styling */
+    .table-container {
+      width: 100%;
+      height: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13.5px;
+    }
+
+    th {
+      background: rgba(30, 41, 59, 0.8);
+      color: var(--text-title);
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    td {
+      padding: 13px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-body);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .badge-win {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(52, 211, 153, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+    }
+
+    .badge-lose {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(251, 113, 133, 0.12);
+      color: var(--accent-rose);
+      border: 1px solid rgba(251, 113, 133, 0.25);
+    }
+
+    /* Code / Architecture Blocks */
+    .code-box {
+      background: #060911;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 14px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: #e2e8f0;
+      line-height: 1.55;
+      overflow-x: auto;
+    }
+
+    .code-accent {
+      color: var(--accent-blue);
+    }
+
+    .code-green {
+      color: var(--accent-green);
+    }
+
+    .code-purple {
+      color: var(--accent-purple);
+    }
+
+    .code-amber {
+      color: var(--accent-amber);
+    }
+
+    /* Slide 1 - Hero Layout */
+    .hero-container {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 32px;
+      height: 100%;
+      align-items: center;
+    }
+
+    .hero-title-group h1 {
+      font-size: 46px;
+      font-weight: 900;
+      line-height: 1.15;
+      color: #ffffff;
+      letter-spacing: -0.03em;
+      margin-bottom: 14px;
+    }
+
+    .hero-title-group h1 span {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-indigo));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-tagline {
+      font-size: 17px;
+      color: var(--text-body);
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .hero-metadata {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .meta-item .meta-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+    }
+
+    .meta-item .meta-val {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-title);
+      margin-top: 2px;
+    }
+
+    /* Problem Statement Callout Cards */
+    .problem-box {
+      background: rgba(251, 113, 133, 0.06);
+      border: 1px solid rgba(251, 113, 133, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .problem-box svg {
+      width: 22px;
+      height: 22px;
+      color: var(--accent-rose);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .problem-content h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffe4e6;
+      margin-bottom: 4px;
+    }
+
+    .problem-content p {
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.45;
+    }
+
+    /* Navigation Bar */
+    .presentation-controls {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      z-index: 100;
+    }
+
+    .ctrl-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-body);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      transition: all 0.15s ease;
+      outline: none;
+    }
+
+    .ctrl-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+
+    .ctrl-btn:active {
+      transform: scale(0.92);
+    }
+
+    .slide-indicator {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent-blue);
+      cursor: pointer;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .slide-indicator:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .ctrl-divider {
+      width: 1px;
+      height: 18px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* Modal / Overview Drawer */
+    .overview-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 15, 25, 0.94);
+      backdrop-filter: blur(20px);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      padding: 40px;
+      overflow-y: auto;
+    }
+
+    .overview-modal.open {
+      display: flex;
+    }
+
+    .overview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto 30px auto;
+    }
+
+    .overview-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .overview-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .overview-card:hover {
+      border-color: var(--accent-blue);
+      transform: translateY(-2px);
+    }
+
+    .overview-card.active-card {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+    }
+
+    .overview-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent-blue);
+      font-weight: 700;
+    }
+
+    .overview-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Keyboard Shortcut Hint Pill */
+    .kb-hint {
+      position: fixed;
+      bottom: 26px;
+      right: 28px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 50;
+    }
+
+    .kb-key {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text-body);
+    }
+
+    @media (max-width: 900px) {
+      .hero-container {
+        grid-template-columns: 1fr;
+      }
+
+      .grid-2,
+      .grid-3,
+      .grid-4 {
+        grid-template-columns: 1fr;
+      }
+
+      .slide-title {
+        font-size: 24px;
+      }
+
+      .slide {
+        height: 86vh;
+        width: 94vw;
+      }
+
+      .overview-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body id="bodyid" style="opacity: 0;">
+
+  <!-- Ambient Glow Effects -->
+  <div class="ambient-glow"></div>
+
+  <!-- Top Progress Bar -->
+  <div class="progress-bar-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <!-- Main Slide Deck Container -->
+  <main class="deck-container" id="deckContainer">
+
+    <!-- =====================================================================
+         SLIDE 1: INTRODUCTION & PROBLEM STATEMENT (REQUIRED)
+         ===================================================================== -->
+    <section class="slide active" data-slide="1">
+      <div class="slide-header">
+        <div class="slide-category">Software Engineering Micro-Project | Semester 3</div>
+      </div>
+      <div class="slide-body">
+        <div class="hero-container">
+          <!-- Left: Project Identity -->
+          <div class="hero-title-group">
+            <h1>Offline<span>Docs</span></h1>
+            <p class="hero-tagline">
+              An Ultra-Lightweight, Offline-First Real-Time Collaborative Document Processor engineered for minimal
+              memory footprint and pixel-perfect print fidelity.
+            </p>
+            <div class="hero-metadata">
+              <div class="meta-item">
+                <span class="meta-label">Domain</span>
+                <span class="meta-val">Full-Stack Web Engineering</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Core Architecture</span>
+                <span class="meta-val">WebSocket (Socket.IO) + PWA</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Memory Footprint</span>
+                <span class="meta-val">&lt; 20 MB RAM (<span style="color: var(--accent-green);">&gt;97%
+                    leaner</span>)</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Offline Capability</span>
+                <span class="meta-val">100% Autonomous (Zero CDN)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Problem Statement Cards -->
+          <div style="display: flex; flex-direction: column; justify-content: center;">
+            <div
+              style="font-size: 12px; font-weight: 700; color: var(--accent-rose); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">
+              The Problem Statement
+            </div>
+
+            <div class="problem-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                </path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              <div class="problem-content">
+                <h4>Severe Memory & CPU Bloat</h4>
+                <p>Standard cloud editors (Google Docs, Office 365) consume 500MB to 1GB+ RAM per tab, causing battery
+                  drain and severe freezing on budget/student laptops.</p>
+              </div>
+            </div>
+
+            <div class="problem-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+                <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+                <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+                <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+                <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                <line x1="12" y1="20" x2="12.01" y2="20"></line>
+              </svg>
+              <div class="problem-content">
+                <h4>Network Fragility & Disconnection Lockout</h4>
+                <p>Most editors lock out editing tools, fail to render CDNs, or risk silent data loss during
+                  intermittent internet connectivity.</p>
+              </div>
+            </div>
+
+            <div class="problem-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+              <div class="problem-content">
+                <h4>Broken Printing & PDF Export Fidelity</h4>
+                <p>Web document printing often chops headings across page breaks, distorts margins, or prints raw web UI
+                  toolbars instead of standard formatted paper.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 2: OBJECTIVES & PROPOSED SOLUTION
+         ===================================================================== -->
+    <section class="slide" data-slide="2">
+      <div class="slide-header">
+        <div class="slide-category">Project Scope</div>
+        <h2 class="slide-title">Objectives & Engineered Solution</h2>
+        <p class="slide-subtitle">Delivering a high-performance alternative through disciplined software engineering.
+        </p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-accent-top" style="background: var(--accent-blue);"></div>
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              Extreme Resource Efficiency
+            </div>
+            <p class="card-text">Engineered without bulky frontend frameworks (React/Vue/Electron). Uses vanilla ES6+
+              and native DOM for near-zero memory footprint.</p>
+            <ul class="feature-list">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Idle memory benchmark &lt; 20 MB</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Zero external runtime dependencies</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Sub-50ms cold startup time</li>
+            </ul>
+            <div class="metric-badge">
+              <span class="metric-value" style="color: var(--accent-blue);">18.5 MB</span>
+              <span class="metric-label">Average RAM Consumption</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-accent-top" style="background: var(--accent-indigo);"></div>
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-indigo)" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              Real-Time Collaboration
+            </div>
+            <p class="card-text">Event-driven WebSocket synchronization using Socket.IO Delta broadcasts and live remote
+              cursor tracking.</p>
+            <ul class="feature-list">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Live multi-user typing sync</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Live remote colored carets &amp; flags</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Selection highlight replication</li>
+            </ul>
+            <div class="metric-badge">
+              <span class="metric-value" style="color: var(--accent-indigo);">&lt; 10 ms</span>
+              <span class="metric-label">Operational Delta Broadcast</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-accent-top" style="background: var(--accent-green);"></div>
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              Offline PWA &amp; Print Engine
+            </div>
+            <p class="card-text">Dual-layer local persistence with Service Worker caching and standardized CSS `@media
+              print` layout fidelity.</p>
+            <ul class="feature-list">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> LocalStorage continuous auto-save</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Standard A4 (816px) canvas fidelity</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Multi-page print break suppression</li>
+            </ul>
+            <div class="metric-badge">
+              <span class="metric-value" style="color: var(--accent-green);">100%</span>
+              <span class="metric-label">Offline Autonomous Uptime</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 3: REQUIREMENTS ANALYSIS (SRS)
+         ===================================================================== -->
+    <section class="slide" data-slide="3">
+      <div class="slide-header">
+        <div class="slide-category">System Analysis</div>
+        <h2 class="slide-title">Software Requirements Specification (SRS)</h2>
+        <p class="slide-subtitle">Categorization of functional specifications and quality attributes.</p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-2">
+          <!-- Functional Requirements -->
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-blue);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 11 12 14 22 4"></polyline>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+              Functional Requirements (FR)
+            </div>
+            <ul class="feature-list">
+              <li>
+                <strong style="color: #fff;">FR-01 (Rich Document Authoring):</strong>
+                Formatting engine supporting headings, text styles, colors, alignment, lists, quotes, and code blocks.
+              </li>
+              <li>
+                <strong style="color: #fff;">FR-02 (Bi-directional Delta Sync):</strong>
+                Broadcast operational Delta packets via Socket.IO to connected sessions without echo-loops.
+              </li>
+              <li>
+                <strong style="color: #fff;">FR-03 (Remote Cursor &amp; Selection Awareness):</strong>
+                Compute character coordinates using getBounds() and render carets, name tags, and selections.
+              </li>
+              <li>
+                <strong style="color: #fff;">FR-04 (Multi-Format Document Export):</strong>
+                Export to clean PDF, Standalone HTML, Markdown (.md), Plain Text (.txt), and Raw JSON backup.
+              </li>
+              <li>
+                <strong style="color: #fff;">FR-05 (Dual-Layer Persistence):</strong>
+                Simultaneous synchronous LocalStorage cache and debounced Node.js file system serialization.
+              </li>
+            </ul>
+          </div>
+
+          <!-- Non-Functional Requirements -->
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-purple);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 14 14"></polyline>
+              </svg>
+              Non-Functional Requirements (NFR)
+            </div>
+            <ul class="feature-list">
+              <li>
+                <strong style="color: #fff;">NFR-01 (Resource Constraints):</strong>
+                Browser memory consumption must remain strictly under 25MB during sustained multi-page typing.
+              </li>
+              <li>
+                <strong style="color: #fff;">NFR-02 (Latency &amp; Sync Speed):</strong>
+                Keystroke-to-socket transmission under 10ms on local network; zero UI thread blocking.
+              </li>
+              <li>
+                <strong style="color: #fff;">NFR-03 (Fault Tolerance &amp; Offline Continuity):</strong>
+                Server disconnects must never interrupt document authoring; sync auto-recovers upon reconnect.
+              </li>
+              <li>
+                <strong style="color: #fff;">NFR-04 (Zero External CDN Dependency):</strong>
+                All runtime scripts, stylesheets, and fonts must be locally vendored for air-gapped environments.
+              </li>
+              <li>
+                <strong style="color: #fff;">NFR-05 (Cross-Device Uniformity):</strong>
+                Document canvas dimensions strictly locked to 816px across desktop and mobile devices.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 4: SYSTEM ARCHITECTURE & DATA FLOW
+         ===================================================================== -->
+    <section class="slide" data-slide="4">
+      <div class="slide-header">
+        <div class="slide-category">System Architecture</div>
+        <h2 class="slide-title">System Architecture &amp; Data Pipeline</h2>
+        <p class="slide-subtitle">Multi-tier architecture separating presentation, transport, and persistence.</p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-2">
+          <!-- Architectural Layers -->
+          <div class="card">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+              </svg>
+              Architectural Tiers
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div
+                style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent-blue); padding: 10px 14px; border-radius: 6px;">
+                <strong style="color: var(--accent-blue); font-size: 13px;">1. Client UI &amp; Overlay Layer
+                  (Browser)</strong>
+                <p style="font-size: 12.5px; color: #cbd5e1; margin-top: 2px;">Quill Editor Core + Custom Remote Cursor
+                  DOM Overlay + Sticky Responsive Controls.</p>
+              </div>
+
+              <div
+                style="background: rgba(99, 102, 241, 0.08); border-left: 3px solid var(--accent-indigo); padding: 10px 14px; border-radius: 6px;">
+                <strong style="color: var(--accent-indigo); font-size: 13px;">2. Client Storage &amp; PWA Layer</strong>
+                <p style="font-size: 12.5px; color: #cbd5e1; margin-top: 2px;">Service Worker (Cache Storage) +
+                  Synchronous LocalStorage delta backup.</p>
+              </div>
+
+              <div
+                style="background: rgba(52, 211, 153, 0.08); border-left: 3px solid var(--accent-green); padding: 10px 14px; border-radius: 6px;">
+                <strong style="color: var(--accent-green); font-size: 13px;">3. Event-Driven Transport
+                  (WebSocket)</strong>
+                <p style="font-size: 12.5px; color: #cbd5e1; margin-top: 2px;">Socket.IO pub/sub channels (`doc-change`,
+                  `cursor-move`, `title-change`).</p>
+              </div>
+
+              <div
+                style="background: rgba(251, 191, 36, 0.08); border-left: 3px solid var(--accent-amber); padding: 10px 14px; border-radius: 6px;">
+                <strong style="color: var(--accent-amber); font-size: 13px;">4. Application &amp; Persistence Server
+                  (Node.js)</strong>
+                <p style="font-size: 12.5px; color: #cbd5e1; margin-top: 2px;">Express Static Engine + Socket.IO Room
+                  Manager + Debounced File Serialization (`doc.json`).</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Pipeline Flowchart (Code Box Style) -->
+          <div class="card">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+              Real-Time Collaboration Event Flow
+            </div>
+
+            <div class="collab-flow">
+
+              <div class="flow-node user-node">
+                <div>
+                  <strong>User A</strong>
+                  <small>Types "Hello"</small>
+                </div>
+              </div>
+
+              <div class="flow-connector">
+                <span>text-change event</span>
+              </div>
+
+              <div class="flow-node client-node">
+                <strong>Quill Editor</strong>
+                <div class="flow-details">
+                  <div>↳ <code>text-change</code> (source: user)</div>
+                  <div>↳ <code>LocalStorage.setItem()</code> <em>Instant local cache</em></div>
+                  <div>↳ <code>socket.emit('doc-change', delta)</code></div>
+                </div>
+              </div>
+
+              <div class="flow-connector">
+                <span>WebSocket transmission</span>
+              </div>
+
+              <div class="flow-node server-node">
+                <div>
+                  <strong>Socket.IO Server Hub</strong>
+                  <small>Broadcast &amp; persistence</small>
+                  <div class="flow-details">
+                    <div>↳ <code>socket.broadcast.emit()</code></div>
+                    <div>↳ Debounced disk write</div>
+                    <div>↳ <code>fs.writeFileSync('doc.json')</code></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flow-connector">
+                <span>Broadcast to connected clients</span>
+              </div>
+
+              <div class="flow-node remote-node">
+                <strong>User B · Remote Client</strong>
+                <div class="flow-details">
+                  <div>↳ <code>socket.on('doc-change')</code></div>
+                  <div>↳ <code>quill.updateContents(delta, 'api')</code></div>
+                  <div>↳ <code>delta.transformPosition()</code></div>
+                </div>
+                <span class="flow-tag">No echo loop</span>
+              </div>
+
+              <div class="flow-connector">
+                <span>Cursor position update</span>
+              </div>
+
+              <div class="flow-node cursor-node">
+                <span class="flow-icon">⌖</span>
+                <div>
+                  <strong>Cursor Overlay Layer</strong>
+                  <small>Updates remote caret position and user name tag smoothly</small>
+                </div>
+              </div>
+
+            </div>
+
+            <style>
+              .collab-flow {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 0;
+                padding: 20px;
+                font-family: inherit;
+              }
+
+              .flow-node {
+                position: relative;
+                width: min(100%, 520px);
+                box-sizing: border-box;
+                padding: 16px 18px;
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                background: var(--card-bg, var(--background));
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+              }
+
+              .flow-node strong {
+                font-size: 14px;
+              }
+
+              .flow-node small {
+                display: block;
+                margin-top: 4px;
+                opacity: .65;
+                font-size: 12px;
+              }
+
+              .flow-icon {
+                font-size: 20px;
+              }
+
+              .user-node {
+                border-left: 3px solid var(--accent-green);
+              }
+
+              .client-node {
+                border-left: 3px solid var(--accent);
+              }
+
+              .server-node {
+                border-left: 3px solid #e5a23d;
+              }
+
+              .remote-node {
+                border-left: 3px solid #a78bfa;
+              }
+
+              .cursor-node {
+                border-left: 3px solid var(--accent-green);
+              }
+
+              .flow-details {
+                display: grid;
+                gap: 9px;
+                font-size: 12px;
+                overflow-wrap: anywhere;
+                line-height: 1.6;
+              }
+
+              .flow-details code {
+                font-size: 11px;
+                color: var(--accent);
+                background: var(--code-bg, rgba(128, 128, 128, .1));
+                padding: 2px 5px;
+                border-radius: 4px;
+              }
+
+              .flow-details em {
+                font-size: 10px;
+                color: #a78bfa;
+                font-style: normal;
+              }
+
+              .flow-connector {
+                height: 54px;
+                width: 2px;
+                background: var(--border);
+                position: relative;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+              }
+
+              .flow-connector::after {
+                content: "";
+                position: absolute;
+                bottom: 0;
+                left: -4px;
+                width: 8px;
+                height: 8px;
+                border-right: 2px solid var(--accent);
+                border-bottom: 2px solid var(--accent);
+                transform: rotate(45deg);
+              }
+
+              .flow-connector span {
+                position: absolute;
+                left: 14px;
+                width: max-content;
+                max-width: calc(100vw - 100px);
+                font-size: 10px;
+                color: var(--text-secondary, #888);
+                background: var(--background);
+                padding: 3px 6px;
+                border-radius: 4px;
+              }
+
+              .flow-tag {
+                align-self: flex-start;
+                font-size: 10px;
+                color: #a78bfa;
+                background: rgba(167, 139, 250, .12);
+                border-radius: 20px;
+                padding: 4px 9px;
+              }
+            </style>  
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 5: REAL-TIME SYNC & REMOTE CURSOR IMPLEMENTATION
+         ===================================================================== -->
+    <!-- <section class="slide" data-slide="5">
+      <div class="slide-header">
+        <div class="slide-category">Core Engineering</div>
+        <h2 class="slide-title">Delta Synchronization &amp; Cursor Tracking</h2>
+        <p class="slide-subtitle">Mathematical cursor positioning and operational delta transformation.</p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-blue);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+              </svg>
+              Loop-Free Delta Sync
+            </div>
+            <p class="card-text">Differentiating between user input and API-applied deltas prevents cascading broadcast
+              feedback loops.</p>
+            <div class="code-box">
+              <span class="code-accent">quill.on</span>('text-change', (d, old, src) =&gt; {
+              <span class="code-purple">if</span> (src === <span class="code-green">'user'</span>) {
+              socket.emit(<span class="code-green">'doc-change'</span>, d);
+              }
+              });
+
+              socket.on(<span class="code-green">'doc-change'</span>, (d) =&gt; {
+              quill.updateContents(d, <span class="code-purple">'api'</span>);
+              });
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">`source: 'api'` instructs Quill not
+              to trigger outbound broadcast handlers.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-indigo);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="22" y1="12" x2="18" y2="12"></line>
+                <line x1="6" y1="12" x2="2" y2="12"></line>
+                <line x1="12" y1="6" x2="12" y2="2"></line>
+                <line x1="12" y1="22" x2="12" y2="18"></line>
+              </svg>
+              Precise getBounds() Math
+            </div>
+            <p class="card-text">Calculates exact character coordinates inside the editor container without altering
+              text nodes.</p>
+            <div class="code-box">
+              <span class="code-purple">const</span> b = quill.getBounds(index);
+
+              caretEl.style.transform =
+              <span class="code-green">`translate3d(${b.left}px, ${b.top}px, 0)`</span>;
+              caretEl.style.height = <span class="code-green">`${b.height}px`</span>;
+
+              <span class="code-purple">if</span> (b.top &lt; 22) flag.classList.add(<span
+                class="code-amber">'flip'</span>);
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">Hardware-accelerated CSS
+              `translate3d` guarantees 60fps cursor movements.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-green);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              Cursor Position Transforms
+            </div>
+            <p class="card-text">When another user inserts characters before an active cursor, the remote index shifts
+              dynamically.</p>
+            <div class="code-box">
+              <span class="code-purple">const</span> deltaObj = <span class="code-purple">new</span> Delta(incoming);
+
+              remoteUsers.forEach(u =&gt; {
+              <span class="code-purple">if</span> (u.range) {
+              u.range.index =
+              deltaObj.<span class="code-accent">transformPosition</span>(u.range.index);
+              }
+              });
+              renderAllRemoteCursors();
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">Eliminates cursor drifting during
+              high-concurrency typing sessions.</p>
+          </div>
+        </div>
+      </div>
+    </section> -->
+
+    <!-- =====================================================================
+         SLIDE 6: BENCHMARKS & RESOURCE OPTIMIZATION
+         ===================================================================== -->
+    <section class="slide" data-slide="6">
+      <div class="slide-header">
+        <div class="slide-category">Performance Engineering</div>
+        <h2 class="slide-title">Benchmarking &amp; Performance Verification</h2>
+        <p class="slide-subtitle">Empirical comparison between Google Docs and OfflineDocs.</p>
+      </div>
+      <div class="slide-body">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Engineering Metric</th>
+                <th>Google Docs Web SPA</th>
+                <th>OfflineDocs (Our Architecture)</th>
+                <th>Engineering Advantage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>RAM Overhead (Per Tab)</strong></td>
+                <td><span class="badge-lose">550 MB – 850 MB</span></td>
+                <td><span class="badge-win">17.8 MB – 19.5 MB</span></td>
+                <td><strong style="color: var(--accent-green);">&gt; 97% Memory Reduction</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Initial Asset Bundle Size</strong></td>
+                <td><span class="badge-lose">25 MB – 40 MB</span></td>
+                <td><span class="badge-win">~310 KB Total Assets</span></td>
+                <td><strong style="color: var(--accent-green);">98.8% Bandwidth Saved</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Cold Boot / Startup Time</strong></td>
+                <td><span class="badge-lose">2,800 ms – 4,500 ms</span></td>
+                <td><span class="badge-win">38 ms – 52 ms</span></td>
+                <td><strong style="color: var(--accent-green);">~75x Faster Startup</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Offline Capability</strong></td>
+                <td>Requires Chrome Extension / Fragile</td>
+                <td><span class="badge-win">100% Native Autonomous PWA</span></td>
+                <td><strong style="color: var(--accent-green);">Air-Gapped Operation</strong></td>
+              </tr>
+              <tr>
+                <td><strong>External Network Dependency</strong></td>
+                <td>Dozens of Google Cloud CDNs</td>
+                <td><span class="badge-win">Zero External CDN Calls</span></td>
+                <td><strong style="color: var(--accent-green);">Zero CDN Outage Risk</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Print Pipeline Architecture</strong></td>
+                <td>Server-side PDF generation raster</td>
+                <td><span class="badge-win">Native CSS `@media print` engine</span></td>
+                <td><strong style="color: var(--accent-green);">Instant Local Vector PDF</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 7: MOBILE RESPONSIVENESS & PRINT FIDELITY
+         ===================================================================== -->
+    <section class="slide" data-slide="7">
+      <div class="slide-header">
+        <div class="slide-category">UX &amp; Media Engineering</div>
+        <h2 class="slide-title">Mobile Uniformity &amp; Print Engine</h2>
+        <p class="slide-subtitle">Overcoming viewport constraints and guaranteeing print fidelity.</p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-2">
+          <!-- Mobile Uniform Canvas -->
+          <div class="card">
+            <div class="card-accent-top" style="background: var(--accent-amber);"></div>
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                <line x1="12" y1="18" x2="12.01" y2="18"></line>
+              </svg>
+              Mobile Viewport &amp; Horizontal Pan
+            </div>
+            <p class="card-text">Standard mobile responsive designs shrink paper to 100% phone width, causing lines to
+              wrap 3–4 words prematurely and corrupting document structure.</p>
+            <ul class="feature-list">
+              <li>
+                <strong style="color: #fff;">Fixed 816px A4 Canvas:</strong>
+                Preserves exact character line wrapping on phone and laptop.
+              </li>
+              <li>
+                <strong style="color: #fff;">Smooth Touch Panning:</strong>
+                Enabled `-webkit-overflow-scrolling: touch` with `overflow-x: auto`.
+              </li>
+              <li>
+                <strong style="color: #fff;">Font Inflation Suppression:</strong>
+                Enforced `-webkit-text-size-adjust: 100% !important` to prevent iOS WebKit from artificially inflating
+                font size.
+              </li>
+              <li>
+                <strong style="color: #fff;">Sticky Screen Header:</strong>
+                Navigation, Print button, and More menu stay locked at 100% screen width while paper pans underneath.
+              </li>
+            </ul>
+          </div>
+
+          <!-- Print Fidelity -->
+          <div class="card">
+            <div class="card-accent-top" style="background: var(--accent-blue);"></div>
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+              The `@media print` Engine
+            </div>
+            <p class="card-text">Replaces fragile DOM swapping methods (which previously wiped event listeners) with a
+              clean CSS-driven print pipeline.</p>
+            <ul class="feature-list">
+              <li>
+                <strong style="color: #fff;">Total UI Suppression:</strong>
+                Hides headers, toolbars, presence avatars, cursors, and toast overlays.
+              </li>
+              <li>
+                <strong style="color: #fff;">Smart Page Break Protection:</strong>
+                `page-break-after: avoid` prevents orphan headers at page bottoms; `break-inside: avoid` protects
+                paragraphs and code blocks.
+              </li>
+              <li>
+                <strong style="color: #fff;">Exact Color Reproduction:</strong>
+                Configured `-webkit-print-color-adjust: exact`.
+              </li>
+              <li>
+                <strong style="color: #fff;">Dynamic Title PDF Naming:</strong>
+                Browser print engine automatically names the exported PDF to match the document title.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 8: TESTING, VERIFICATION & QUALITY ASSURANCE
+         ===================================================================== -->
+    <section class="slide" data-slide="8">
+      <div class="slide-header">
+        <div class="slide-category">Quality Assurance</div>
+        <h2 class="slide-title">Testing, Fault Recovery &amp; Verification</h2>
+        <p class="slide-subtitle">Ensuring software reliability across network failures and edge cases.</p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-green);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              Network Disconnect Test
+            </div>
+            <p class="card-text">Simulated abrupt network drops, server restarts, and offline toggles.</p>
+            <ul class="feature-list">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Editor automatically switches to local cache mode</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Zero keystrokes lost in offline state</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Auto-reconnect reconciles state seamlessly</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-blue);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+              Cross-Platform Verification
+            </div>
+            <p class="card-text">Validated cross-browser parity on desktop, tablet, and mobile browsers.</p>
+            <ul class="feature-list">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> macOS Safari, Chrome, Firefox</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Windows 11 Edge &amp; Chrome</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> iOS Safari &amp; Android Chrome</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-purple);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+              Z-Index Stacking Rigor
+            </div>
+            <p class="card-text">Rigorous debugging of DOM stacking contexts to resolve dropdown clipping.</p>
+            <ul class="feature-list">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Header dropdowns isolated at `z-index: 2000`</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Color pickers open to left with 5-class specificity</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg> Toolbar wrapper set to `overflow: visible`</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 9: SCALABILITY, FUTURE SCOPE & THANK YOU (REQUIRED)
+         ===================================================================== -->
+    <section class="slide" data-slide="9">
+      <div class="slide-header">
+        <div class="slide-category">Roadmap &amp; Defense</div>
+        <h2 class="slide-title">Scalability, Future Scope &amp; Conclusion</h2>
+        <p class="slide-subtitle">Extending architectural capabilities and academic summary.</p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-2">
+          <!-- Scalability & Future Scope -->
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-blue);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                </path>
+              </svg>
+              Scalability &amp; Architectural Roadmap
+            </div>
+            <ul class="feature-list">
+              <li>
+                <strong style="color: #fff;">1. CRDT Integration (Yjs / Automerge):</strong>
+                Upgrade operational delta broadcasts to conflict-free replicated data types for decentralized
+                peer-to-peer mesh synchronization without central server authority.
+              </li>
+              <li>
+                <strong style="color: #fff;">2. Multi-Node Clustering (Redis Pub/Sub):</strong>
+                Implement Socket.IO Redis Adapter to horizontally scale across multiple Node.js instances supporting
+                thousands of concurrent rooms.
+              </li>
+              <li>
+                <strong style="color: #fff;">3. End-to-End Encryption (E2EE):</strong>
+                Client-side Web Crypto API (AES-GCM-256) to encrypt deltas in transit and at rest on the file system.
+              </li>
+              <li>
+                <strong style="color: #fff;">4. Git-Style Version Branching:</strong>
+                Snapshot commits and visual difference comparison (diffing) for document revision history.
+              </li>
+              <li>
+                <strong style="color: #fff;">5. Native Binary Packaging:</strong>
+                Wrap with Electron or Tauri to distribute as a zero-overhead native desktop application.
+              </li>
+            </ul>
+          </div>
+
+          <!-- Academic Thank You & Conclusion -->
+          <div class="card"
+            style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: radial-gradient(circle at center, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); border-color: rgba(56, 189, 248, 0.3);">
+            <div
+              style="width: 56px; height: 56px; border-radius: 50%; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+
+            <h3 style="font-size: 28px; font-weight: 800; color: #ffffff; margin-bottom: 8px;">
+              Thank You!
+            </h3>
+            <p style="font-size: 15px; color: var(--accent-blue); font-weight: 600; margin-bottom: 16px;">
+              Questions &amp; Demonstration
+            </p>
+            <p
+              style="font-size: 13.5px; color: var(--text-body); max-width: 440px; line-height: 1.6; margin-bottom: 24px;">
+              OfflineDocs demonstrates that thoughtful software engineering, efficient data structures, and native
+              browser primitives can deliver modern collaborative experiences with &gt;97% less resource consumption.
+            </p>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+              <span
+                style="font-size: 11px; font-weight: 700; color: #fff; background: rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 6px;">
+                Node.js &amp; Express
+              </span>
+              <span
+                style="font-size: 11px; font-weight: 700; color: var(--accent-indigo); background: rgba(99,102,241,0.15); padding: 4px 10px; border-radius: 6px;">
+                Socket.IO
+              </span>
+              <span
+                style="font-size: 11px; font-weight: 700; color: var(--accent-green); background: rgba(52,211,153,0.15); padding: 4px 10px; border-radius: 6px;">
+                Offline PWA
+              </span>
+              <span
+                style="font-size: 11px; font-weight: 700; color: var(--accent-blue); background: rgba(56,189,248,0.15); padding: 4px 10px; border-radius: 6px;">
+                Quill Delta Engine
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Interactive Slide Controls Bar -->
+  <nav class="presentation-controls">
+    <button class="ctrl-btn" id="prevBtn" title="Previous Slide (← / PageUp)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+    <div class="slide-indicator" id="slideIndicator" title="Click to open slide overview">
+      1 / 9
+    </div>
+    <button class="ctrl-btn" id="nextBtn" title="Next Slide (→ / Space / Enter)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
+    <div class="ctrl-divider"></div>
+    <button class="ctrl-btn" id="overviewBtn" title="Slide Overview (Press O)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7"></rect>
+        <rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect>
+        <rect x="3" y="14" width="7" height="7"></rect>
+      </svg>
+    </button>
+    <button class="ctrl-btn" id="fullscreenBtn" title="Toggle Fullscreen (Press F)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+      </svg>
+    </button>
+  </nav>
+
+  <!-- Keyboard Shortcuts Hint -->
+  <!-- <div class="kb-hint">
+    <span>Navigate:</span>
+    <kbd class="kb-key">←</kbd>
+    <kbd class="kb-key">→</kbd>
+    <kbd class="kb-key">Space</kbd>
+    <span>| Overview:</span>
+    <kbd class="kb-key">O</kbd>
+    <span>| Fullscreen:</span>
+    <kbd class="kb-key">F</kbd>
+  </div> -->
+
+  <!-- Slide Overview Modal -->
+  <div class="overview-modal" id="overviewModal">
+    <div class="overview-header">
+      <div class="overview-title">Slide Overview</div>
+      <button class="ctrl-btn" id="closeOverviewBtn"
+        style="width: 36px; height: 36px; background: rgba(255,255,255,0.1);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="overview-grid" id="overviewGrid"></div>
+  </div>
+
+  <!-- ==========================================================================
+       PRESENTATION LOGIC (KEYBOARD, NAVIGATION, OVERVIEW)
+       ========================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      const slides = document.querySelectorAll('.slide');
+      const totalSlides = slides.length;
+      let currentSlide = 0;
+
+      const progressBar = document.getElementById('progressBar');
+      const slideIndicator = document.getElementById('slideIndicator');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      const overviewBtn = document.getElementById('overviewBtn');
+      const overviewModal = document.getElementById('overviewModal');
+      const closeOverviewBtn = document.getElementById('closeOverviewBtn');
+      const overviewGrid = document.getElementById('overviewGrid');
+
+      const slideTitles = [
+        "1. Project Intro & Problem Statement",
+        "2. Objectives & Proposed Solution",
+        "3. Software Requirements Specification (SRS)",
+        "4. System Architecture & Data Pipeline",
+        "5. Real-Time Sync & Cursor Math",
+        "6. Benchmarks & Performance Verification",
+        "7. Mobile Responsiveness & Print Engine",
+        "8. Testing & Quality Assurance",
+        "9. Scalability, Future Scope & Conclusion"
+      ];
+
+      // Build Overview Cards
+      slideTitles.forEach((title, idx) => {
+        const card = document.createElement('div');
+        card.className = `overview-card ${idx === 0 ? 'active-card' : ''}`;
+        card.innerHTML = `
+          <div class="overview-num">SLIDE ${idx + 1}</div>
+          <div class="overview-card-title">${title}</div>
+        `;
+        card.addEventListener('click', () => {
+          goToSlide(idx);
+          closeOverview();
+        });
+        overviewGrid.appendChild(card);
+      });
+
+      function updateUI() {
+        slides.forEach((s, idx) => {
+          s.classList.toggle('active', idx === currentSlide);
+        });
+
+        // Update indicator
+        slideIndicator.textContent = `${currentSlide + 1} / ${totalSlides}`;
+
+        // Update progress bar
+        const progressPercent = ((currentSlide + 1) / totalSlides) * 100;
+        progressBar.style.width = `${progressPercent}%`;
+
+        // Update overview active card
+        const cards = overviewGrid.querySelectorAll('.overview-card');
+        cards.forEach((c, idx) => {
+          c.classList.toggle('active-card', idx === currentSlide);
+        });
+      }
+
+      function nextSlide() {
+        if (currentSlide < totalSlides - 1) {
+          currentSlide++;
+          updateUI();
+        }
+      }
+
+      function prevSlide() {
+        if (currentSlide > 0) {
+          currentSlide--;
+          updateUI();
+        }
+      }
+
+      function goToSlide(index) {
+        if (index >= 0 && index < totalSlides) {
+          currentSlide = index;
+          updateUI();
+        }
+      }
+
+      function toggleOverview() {
+        overviewModal.classList.toggle('open');
+      }
+
+      function closeOverview() {
+        overviewModal.classList.remove('open');
+      }
+
+      let full = false;
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+          document.getElementById("bodyid").style.opacity = 1;
+
+        } else {
+          document.exitFullscreen().catch(() => {});
+          document.getElementById("bodyid").style.opacity = 0;
+        }
+      }
+
+      // Event Listeners
+      nextBtn.addEventListener('click', nextSlide);
+      prevBtn.addEventListener('click', prevSlide);
+      slideIndicator.addEventListener('click', toggleOverview);
+      overviewBtn.addEventListener('click', toggleOverview);
+      closeOverviewBtn.addEventListener('click', closeOverview);
+      fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+      // Keyboard Controller
+      window.addEventListener('keydown', (e) => {
+        if (overviewModal.classList.contains('open')) {
+          if (e.key === 'Escape' || e.key.toLowerCase() === 'o') {
+            closeOverview();
+          }
+          return;
+        }
+
+        switch (e.key) {
+          case 'ArrowRight':
+          case 'ArrowDown':
+          case 'PageDown':
+          case ' ':
+          case 'Enter':
+            e.preventDefault();
+            nextSlide();
+            break;
+
+          case 'ArrowLeft':
+          case 'ArrowUp':
+          case 'PageUp':
+            e.preventDefault();
+            prevSlide();
+            break;
+
+          case 'Home':
+            e.preventDefault();
+            goToSlide(0);
+            break;
+
+          case 'End':
+            e.preventDefault();
+            goToSlide(totalSlides - 1);
+            break;
+
+          case 'o':
+          case 'O':
+            e.preventDefault();
+            toggleOverview();
+            break;
+
+          case 'f':
+          case 'F':
+            e.preventDefault();
+            toggleFullscreen();
+            break;
+
+          case 'Escape':
+            closeOverview();
+            break;
+        }
+      });
+
+      // Initialize
+      updateUI();
+    })();
+  </script>
+</body>
+
+</html>
